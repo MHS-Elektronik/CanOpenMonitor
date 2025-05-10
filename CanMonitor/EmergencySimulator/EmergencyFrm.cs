@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -229,11 +229,7 @@ namespace EmergencySimulator
 
         private void button_send_Click(object sender, EventArgs e)
         {
-            canpacket p = new canpacket();
-            p.cob = node;
-            p.data = emcymsg;
-            p.len = 8;
-
+            canpacket p = new canpacket(node, emcymsg, false, false, false);
             _lco.SendPacket(p);
 
         }

@@ -1,0 +1,16 @@
+*.pdb
+*.dll
+*.ilk
+*.exp
+*.lib
+*.log
+*.db
+*.user
+*.tlog
+*.lastbuildstate
+/libCanopenSimple.VC.db
+Debug/
+Release/
+bin/
+.vs/
+*/Release/

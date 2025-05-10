@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -72,6 +72,7 @@
     <SignManifests>false</SignManifests>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -86,14 +87,14 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="WeifenLuo.WinFormsUI.Docking, Version=1.0.0.0, Culture=neutral, PublicKeyToken=5cded1a1a0a7b481, processorArchitecture=MSIL">
-      <HintPath>..\..\..\CanMonitorPrivate\packages\DockPanelSuite.3.1.0\lib\net40\WeifenLuo.WinFormsUI.Docking.dll</HintPath>
+      <HintPath>..\packages\DockPanelSuite.3.1.0\lib\net40\WeifenLuo.WinFormsUI.Docking.dll</HintPath>
     </Reference>
     <Reference Include="WeifenLuo.WinFormsUI.Docking.ThemeVS2015, Version=1.0.0.0, Culture=neutral, PublicKeyToken=5cded1a1a0a7b481, processorArchitecture=MSIL">
-      <HintPath>..\..\..\CanMonitorPrivate\packages\DockPanelSuite.ThemeVS2015.3.1.0\lib\net40\WeifenLuo.WinFormsUI.Docking.ThemeVS2015.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\DockPanelSuite.ThemeVS2015.3.1.0\lib\net40\WeifenLuo.WinFormsUI.Docking.ThemeVS2015.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ComPortManager.cs" />
     <Compile Include="CanLogForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -116,18 +117,11 @@
     </Compile>
     <Compile Include="ErrorCodes.cs" />
     <Compile Include="ICanDocument.cs" />
-    <Compile Include="IComportManager.cs" />
     <Compile Include="InfoLogDocument.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="InfoLogDocument.Designer.cs">
       <DependentUpon>InfoLogDocument.cs</DependentUpon>
-    </Compile>
-    <Compile Include="LogControls.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="LogControls.Designer.cs">
-      <DependentUpon>LogControls.cs</DependentUpon>
     </Compile>
     <Compile Include="MainDockForm.cs">
       <SubType>Form</SubType>
@@ -162,9 +156,6 @@
     <EmbeddedResource Include="InfoLogDocument.resx">
       <DependentUpon>InfoLogDocument.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="LogControls.resx">
-      <DependentUpon>LogControls.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="MainDockForm.resx">
       <DependentUpon>MainDockForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -185,7 +176,6 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <None Include="app.manifest" />
-    <None Include="CanMonitor_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -201,7 +191,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\libCanOpenSimple2\libCanopenSimple.csproj">
+    <ProjectReference Include="..\..\libCanOpenSimple3\libCanopenSimple.csproj">
       <Project>{2fb81add-258f-4135-a9b9-17e2aca2448e}</Project>
       <Name>libCanopenSimple</Name>
     </ProjectReference>
@@ -246,6 +236,13 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="GroupBy_284.ico" />
+    <None Include="Resources\info_window.png" />
+    <None Include="Resources\emcy_window.png" />
+    <None Include="Resources\nmt_window.png" />
+    <None Include="Resources\can_window.png" />
+    <None Include="Resources\setup.png" />
+    <None Include="Resources\stock_connect_48.png" />
+    <None Include="Resources\stock_disconnect_48.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

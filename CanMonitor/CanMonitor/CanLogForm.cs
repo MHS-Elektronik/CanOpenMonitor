@@ -1,8 +1,8 @@
-﻿using libCanopenSimple;
+using libCanopenSimple;
 using Microsoft.CSharp;
 using N_SettingsMgr;
 using PDOInterface;
-using PFMMeasurementService.Models.Devices.Buses;
+//using PFMMeasurementService.Models.Devices.Buses;
 using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
@@ -20,17 +20,10 @@ namespace CanMonitor
 {
     public partial class CanLogForm : DockContent, ICanDocument
     {
-
-   
         public DockPanel dockpanel;
 
         List<ListViewItem> listitems = new List<ListViewItem>();
-
-     
-
-     
        
-
         Dictionary<UInt32, List<byte>> sdotransferdata = new Dictionary<uint, List<byte>>();
 
         System.Windows.Forms.Timer updatetimer = new System.Windows.Forms.Timer();
@@ -51,9 +44,7 @@ namespace CanMonitor
             }
 
             InitializeComponent();
-
-          
-
+            AutoScaleMode = AutoScaleMode.Dpi;        
 
             Program.lco.dbglevel = debuglevel.DEBUG_NONE;
 
@@ -63,21 +54,13 @@ namespace CanMonitor
             Program.lco.pdoevent += log_PDO;
             Program.lco.emcyevent += log_EMCY;
 
-            listView1.DoubleBuffering(true);
-          
-         
-            
+            listView1.DoubleBuffering(true);                            
             listView1.ListViewItemSorter = null;
 
             updatetimer.Interval = 1000;
             updatetimer.Tick += updatetimer_Tick;
 
             updatetimer_Tick(null, new EventArgs());
-
-            //FIXME this is messy
-            //FIXME autoload/start plugins may be a problem with docpanel                
-
-           // Program.pluginManager.autoloadplugins();
 
             this.Shown += Form1_Shown;
 
@@ -133,18 +116,10 @@ namespace CanMonitor
             last = DateTime.Now;
         }
 
+
         private void Form1_Shown(object sender, EventArgs e)
         {
-
-            this.Text = "CanOpen Log";
-
-            //FIXME
-            //if (Properties.Settings.Default.autoconnect == true)
-            // {
-            //     button_open_Click(this, new EventArgs());
-            // }
-
-          
+            this.Text = "CanOpen Log";          
         }
 
       
@@ -170,6 +145,7 @@ namespace CanMonitor
 
             bool limit = Properties.Settings.Default.limitlines;
             int linelimit = Properties.Settings.Default.linelimit;
+            bool autoscroll = Properties.Settings.Default.CanAutoscroll;
 
             if (listitems.Count != 0)
                 lock (listitems)
@@ -180,10 +156,7 @@ namespace CanMonitor
 
                     listitems.Clear();
 
-                //    Properties.Settings.Default.Reload();
-                    bool s = Properties.Settings.Default.autoscroll;
-
-                    if (Properties.Settings.Default.autoscroll && listView1.Items.Count > 2)
+                    if (autoscroll && listView1.Items.Count > 2)
                         listView1.EnsureVisible(listView1.Items.Count - 1);
 
                     if (limit)
@@ -196,30 +169,24 @@ namespace CanMonitor
                     listView1.EndUpdate();
 
                 }
-
-         
-
-
         }
+
 
         private void log_NMT(canpacket payload, DateTime dt)
         {
-
-
-
             string[] items = new string[6];
             items[0] = dt.ToString("MM/dd/yyyy HH:mm:ss.fff");
             items[1] = "NMT";
             items[2] = string.Format("{0:x3}", payload.cob);
             items[3] = "";
-            items[4] = BitConverter.ToString(payload.data).Replace("-", string.Empty);
+            items[4] = payload.DataToString();
 
             string msg = "";
 
-            if (payload.data.Length != 2)
+            if (payload.len != 2)
                 return;
 
-            switch (payload.data[0])
+            switch (payload.dataByte[0])
             {
                 case 0x01:
                     msg = "Enter operational";
@@ -239,13 +206,13 @@ namespace CanMonitor
 
             }
 
-            if (payload.data[1] == 0)
+            if (payload.dataByte[1] == 0)
             {
                 msg += " - All nodes";
             }
             else
             {
-                msg += string.Format(" - Node 0x{0:x2}", payload.data[1]);
+                msg += string.Format(" - Node 0x{0:x2}", payload.dataByte[1]);
             }
 
             items[5] = msg;
@@ -262,23 +229,20 @@ namespace CanMonitor
             }
 
             appendfile(items);
-
         }
+
 
         private void log_NMTEC(canpacket payload, DateTime dt)
         {
-
-
-
             string[] items = new string[6];
             items[0] = dt.ToString("MM/dd/yyyy HH:mm:ss.fff");
             items[1] = "NMTEC";
             items[2] = string.Format("{0:x3}", payload.cob);
             items[3] = string.Format("{0:x3}", payload.cob & 0x0FF);
-            items[4] = BitConverter.ToString(payload.data).Replace("-", string.Empty);
+            items[4] = payload.DataToString();
 
             string msg = "";
-            switch (payload.data[0])
+            switch (payload.dataByte[0])
             {
                 case 0:
                     msg = "BOOT";
@@ -303,24 +267,18 @@ namespace CanMonitor
 
             appendfile(items);
 
-            if (Properties.Settings.Default.showNMTEC && (Properties.Settings.Default.showHB == true || payload.data[0] == 0))
+            if (Properties.Settings.Default.showNMTEC && (Properties.Settings.Default.showHB == true || payload.dataByte[0] == 0))
             {
                 lock (listitems)
                 {
                     listitems.Add(i);
                 }
             }
-
-    
-
-
-
         }
+
 
         private void log_SDO(canpacket payload, DateTime dt)
         {
-
-
             string[] items = new string[6];
             items[0] = dt.ToString("MM/dd/yyyy HH:mm:ss.fff");
             items[1] = "SDO";
@@ -335,39 +293,33 @@ namespace CanMonitor
                 items[3] = string.Format("{0:x3}", payload.cob & 0x0FF);
             }
 
-            items[4] = BitConverter.ToString(payload.data).Replace("-", string.Empty);
+            items[4] = payload.DataToString();
 
             string msg = "";
 
+            int SCS = payload.dataByte[0] >> 5; //7-5
 
-            int SCS = payload.data[0] >> 5; //7-5
-
-            int n = (0x03 & (payload.data[0] >> 2)); //3-2 data size for normal packets
-            int e = (0x01 & (payload.data[0] >> 1)); // expidited flag
-            int s = (payload.data[0] & 0x01); // data size set flag //also in block
+            int n = (0x03 & (payload.dataByte[0] >> 2)); //3-2 data size for normal packets
+            int e = (0x01 & (payload.dataByte[0] >> 1)); // expidited flag
+            int s = (payload.dataByte[0] & 0x01); // data size set flag //also in block
             int c = s;
 
-            int sn = (0x07 & (payload.data[0] >> 1)); //3-1 data size for segment packets
-            int t = (0x01 & (payload.data[0] >> 4));  //toggle flag
+            int sn = (0x07 & (payload.dataByte[0] >> 1)); //3-1 data size for segment packets
+            int t = (0x01 & (payload.dataByte[0] >> 4));  //toggle flag
 
-            int cc = (0x01 & (payload.data[0] >> 2));
+            int cc = (0x01 & (payload.dataByte[0] >> 2));
 
-
-
-            UInt16 index = (UInt16)(payload.data[1] + (payload.data[2] << 8));
-            byte sub = payload.data[3];
-
+            UInt16 index = (UInt16)(payload.dataByte[1] + (payload.dataByte[2] << 8));
+            byte sub = payload.dataByte[3];
 
             int valid = 7;
             int validsn = 7;
-
 
             if (n != 0)
                 valid = 8 - (7 - n);
 
             if (sn != 0)
                 validsn = 8 - (7 - sn);
-
 
             if (payload.cob >= 0x580 && payload.cob <= 0x600)
             {
@@ -393,7 +345,7 @@ namespace CanMonitor
 
                             for (int x = 1; x <= validsn; x++)
                             {
-                                sdotransferdata[payload.cob].Add(payload.data[x]);
+                                sdotransferdata[payload.cob].Add(payload.dataByte[x]);
                             }
 
                             if (c == 1)
@@ -436,9 +388,7 @@ namespace CanMonitor
 
                         if (e == 0 && s == 1)
                         {
-                            byte[] size = new byte[4];
-                            Array.Copy(payload.data, 4, size, 0, 4);
-                            UInt32 isize = (UInt32)BitConverter.ToUInt32(size, 0);
+                            UInt32 isize = (UInt32)Convert.ToUInt32(payload.data[0]);
                             nbytes = string.Format("Bytes = {0}", isize);
 
                             if (sdotransferdata.ContainsKey(payload.cob))
@@ -452,15 +402,12 @@ namespace CanMonitor
                     case 3:
                         mode = "initate download response";
                         sdoproto = string.Format("{0} 0x{1:x4}/{2:x2}", mode, index, sub);
-
-
-
                         break;
 
                     case 5:
                         mode = "Block download response";
 
-                        byte segperblock = payload.data[4];
+                        byte segperblock = payload.dataByte[4];
                         sdoproto = string.Format("{0} 0x{1:x4}/{2:x2} Blksize = {3}", mode, cc == 0 ? "NO SERVER CRC" : "SERVER CRC", index, sub, segperblock);
 
                         break;
@@ -471,12 +418,7 @@ namespace CanMonitor
                         break;
 
                 }
-
-
-
                 msg = sdoproto;
-
-
             }
             else
             {
@@ -497,7 +439,7 @@ namespace CanMonitor
 
                             for (int x = 1; x <= validsn; x++)
                             {
-                                sdotransferdata[payload.cob].Add(payload.data[x]);
+                                sdotransferdata[payload.cob].Add(payload.dataByte[x]);
                             }
 
                             if (c == 1)
@@ -542,9 +484,7 @@ namespace CanMonitor
 
                         if (e == 0 && s == 1)
                         {
-                            byte[] size2 = new byte[4];
-                            Array.Copy(payload.data, 4, size2, 0, 4);
-                            UInt32 isize2 = (UInt32)BitConverter.ToUInt32(size2, 0);
+                            UInt32 isize2 = (UInt32)Convert.ToUInt32(payload.data[0]);
                             nbytes = string.Format("Bytes = {0}", isize2);
                         }
 
@@ -573,9 +513,7 @@ namespace CanMonitor
                     case 6:
                         mode = "Initate Block download request";
 
-                        byte[] size = new byte[4];
-                        Array.Copy(payload.data, 4, size, 0, 4);
-                        UInt32 isize = (UInt32)BitConverter.ToUInt32(size, 0);
+                        UInt32 isize = (UInt32)Convert.ToUInt32(payload.data[0]);
 
                         sdoproto = string.Format("{0} 0x{1:x4}/{2:x2} Size = {3}", mode, cc == 0 ? "NO CLIENT CRC" : "CLIENT CRC", index, sub, isize);
                         break;
@@ -584,22 +522,18 @@ namespace CanMonitor
                     default:
                         mode = string.Format("CSC {0}", SCS);
                         break;
-
                 }
 
-
                 msg = sdoproto;
-
             }
 
-
-            if ((payload.data[0] & 0x80) != 0)
+            if ((payload.dataByte[0] & 0x80) != 0)
             {
                 byte[] errorcode = new byte[4];
-                errorcode[0] = payload.data[4];
-                errorcode[1] = payload.data[5];
-                errorcode[2] = payload.data[6];
-                errorcode[3] = payload.data[7];
+                errorcode[0] = payload.dataByte[4];
+                errorcode[1] = payload.dataByte[5];
+                errorcode[2] = payload.dataByte[6];
+                errorcode[3] = payload.dataByte[7];
 
                 UInt32 err = BitConverter.ToUInt32(errorcode, 0);
 
@@ -609,24 +543,20 @@ namespace CanMonitor
                     msg += " " + ErrorCodes.sdoerrormessages[err];
 
                 }
-
             }
             else
             {
                 if (Program.pluginManager.ipdo != null)
-                    msg += " " + Program.pluginManager.ipdo.decodesdo(payload.cob, index, sub, payload.data);
+                    msg += " " + Program.pluginManager.ipdo.decodesdo(index, sub, payload);
             }
-
-
             items[5] = msg;
             appendfile(items);
-
 
             if (Properties.Settings.Default.showsdo)
             {
                 ListViewItem i = new ListViewItem(items);
 
-                if ((payload.data[0] & 0x80) != 0)
+                if ((payload.dataByte[0] & 0x80) != 0)
                 {
                     i.BackColor = Color.Orange;
                 }
@@ -636,13 +566,11 @@ namespace CanMonitor
                 lock (listitems)
                     listitems.Add(i);
             }
-
         }
+
 
         private void log_PDO(canpacket[] payloads, DateTime dt)
         {
-
-
             foreach (canpacket payload in payloads)
             {
 
@@ -651,14 +579,14 @@ namespace CanMonitor
                 items[1] = "PDO";
                 items[2] = string.Format("{0:x3}", payload.cob);
                 items[3] = "";
-                items[4] = BitConverter.ToString(payload.data).Replace("-", string.Empty);
+                items[4] = payload.DataToString();
 
                 if (Program.pluginManager.pdoprocessors.ContainsKey(payload.cob))
                 {
                     string msg = null;
                     try
                     {
-                        msg = Program.pluginManager.pdoprocessors[payload.cob](payload.data);
+                        msg = Program.pluginManager.pdoprocessors[payload.cob](payload);
                     }
                     catch (Exception)
                     {
@@ -690,8 +618,8 @@ namespace CanMonitor
 
                 appendfile(items);
             }
-
         }
+
 
         private void log_EMCY(canpacket payload, DateTime dt)
         {
@@ -702,16 +630,16 @@ namespace CanMonitor
             items[1] = "EMCY";
             items[2] = string.Format("{0:x3}", payload.cob);
             items[3] = string.Format("{0:x3}", payload.cob - 0x080);
-            items[4] = BitConverter.ToString(payload.data).Replace("-", string.Empty);
+            items[4] = payload.DataToString();
             //items[4] = "EMCY";
 
             items2[0] = dt.ToString("MM/dd/yyyy HH:mm:ss.fff");
             items2[1] = items[2];
             items2[2] = items[3];
 
-            UInt16 code = (UInt16)(payload.data[0] + (payload.data[1] << 8));
-            byte bits = (byte)(payload.data[3]);
-            UInt32 info = (UInt32)(payload.data[4] + (payload.data[5] << 8) + (payload.data[6] << 16) + (payload.data[7] << 24));
+            UInt16 code = (UInt16)(payload.dataByte[0] + (payload.dataByte[1] << 8));
+            byte bits = (byte)(payload.dataByte[3]);
+            UInt32 info = (UInt32)(payload.dataByte[4] + (payload.dataByte[5] << 8) + (payload.dataByte[6] << 16) + (payload.dataByte[7] << 24));
 
             if (ErrorCodes.errcode.ContainsKey(code))
             {
@@ -761,11 +689,7 @@ namespace CanMonitor
                     listitems.Add(i);
 
             }
-
-           
-
             appendfile(items);
-
         }
 
       
@@ -775,18 +699,10 @@ namespace CanMonitor
             
         }
 
-        private void button_clear_Click(object sender, EventArgs e)
-        {
-          
-
-            
-            //fixme clearall
-
-        }
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            if (Properties.Settings.Default.autoscroll)
+            if (Properties.Settings.Default.CanAutoscroll)
             {
                 if (listView1.Items.Count > 1)
                     listView1.EnsureVisible(listView1.Items.Count - 1);
@@ -823,8 +739,6 @@ namespace CanMonitor
             }
 
             xeRoot.Save(filename);
-
-
         }
 
 
@@ -874,12 +788,7 @@ namespace CanMonitor
                         }
 
                         canpacket[] p = new canpacket[1];
-                        p[0] = new canpacket();
-                        p[0].cob = cob;
-                        p[0].data = b;
-                        p[0].len = (byte)b.Length;
-
-
+                        p[0] = new canpacket(cob, b, false, false, false);
 
                         string d = bits[0];
                         string[] d2 = d.Split(' ');
@@ -953,14 +862,12 @@ namespace CanMonitor
                         canpacket[] p = new canpacket[1];
                         p[0] = new canpacket();
                         p[0].cob = cob;
+                        p[0].len = len;
 
-
-                        p[0].data = new byte[len];
                         for (int x = 0; x < len; x++)
                         {
-                            p[0].data[x] = Convert.ToByte(bits[3].Substring(x * 2, 2), 16);
+                            p[0].dataByte[x] = Convert.ToByte(bits[3].Substring(x * 2, 2), 16);
                         }
-
                         p[0].len = len;
 
                         DateTime dt = DateTime.Parse(bits[0]);
@@ -992,13 +899,6 @@ namespace CanMonitor
         }
 
 
-      
-
-        private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
         private void Form1_Resize(object sender, EventArgs e)
         {
             if (this.WindowState == FormWindowState.Minimized)
@@ -1011,6 +911,7 @@ namespace CanMonitor
             }
         }
 
+
         private void notifyIcon1_DoubleClick(object sender, EventArgs e)
         {
             Show();
@@ -1018,7 +919,7 @@ namespace CanMonitor
             notifyIcon1.Visible = false;
         }
 
-       
+
 
         #endregion
 
@@ -1027,7 +928,6 @@ namespace CanMonitor
 
 
         #endregion
-
     }
 
 }

@@ -1,4 +1,4 @@
-﻿using libCanopenSimple;
+using libCanopenSimple;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -21,6 +21,7 @@ namespace CanMonitor
         public EmcyDocument()
         {
             InitializeComponent();
+            AutoScaleMode = AutoScaleMode.Dpi;            
             listView_emcy.DoubleBuffering(true);
             Program.lco.emcyevent += log_EMCY;
 
@@ -52,16 +53,16 @@ namespace CanMonitor
             items[1] = "EMCY";
             items[2] = string.Format("{0:x3}", payload.cob);
             items[3] = string.Format("{0:x3}", payload.cob - 0x080);
-            items[4] = BitConverter.ToString(payload.data).Replace("-", string.Empty);
+            items[4] = payload.DataToString();
             //items[4] = "EMCY";
 
             items2[0] = dt.ToString("MM/dd/yyyy HH:mm:ss.fff");
             items2[1] = items[2];
             items2[2] = items[3];
 
-            UInt16 code = (UInt16)(payload.data[0] + (payload.data[1] << 8));
-            byte bits = (byte)(payload.data[3]);
-            UInt32 info = (UInt32)(payload.data[4] + (payload.data[5] << 8) + (payload.data[6] << 16) + (payload.data[7] << 24));
+            UInt16 code = (UInt16)(payload.dataByte[0] + (payload.dataByte[1] << 8));
+            byte bits = (byte)(payload.dataByte[3]);
+            UInt32 info = (UInt32)(payload.dataByte[4] + (payload.dataByte[5] << 8) + (payload.dataByte[6] << 16) + (payload.dataByte[7] << 24));
 
             if (ErrorCodes.errcode.ContainsKey(code))
             {

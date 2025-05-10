@@ -32,5 +32,10 @@ namespace PDOInjector
             PDOValue p = (PDOValue)sender;
             lco.writePDO(p.cob, p.data);
         }
+
+        private void pdoValue1_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

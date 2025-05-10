@@ -1,5 +1,4 @@
-﻿using libCanopenSimple;
-using PFMMeasurementService.Models.Devices.Buses;
+using libCanopenSimple;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,58 +18,47 @@ namespace CanMonitor
 
         public List<driverport> _driverport;
 
-        IComPortManagerInterface cpm = null;
-
-        BUSSPEED rate = BUSSPEED.BUS_500Kbit;
+        public BUSSPEED rate = BUSSPEED.BUS_500Kbit;
 
         public delegate void PortChangedEvent(object sender, EventArgs e);
         public event PortChangedEvent portchangedevent;
 
+
         public DriverLoader()
         {
-            cpm = new ComPortManagerModel(); ;
-            cpm.DeviceListChanged += Cpm_DeviceListChanged;
         }
+
 
         public void finddrivers()
         {
-
-            //textBox_info.AppendText("Searching for drivers...\r\n\r\n");
+            Program.InfoWin.AddLine("Searching for drivers...");
             string[] founddrivers = Directory.GetFiles("drivers\\", "*.dll");
 
             foreach (string driver in founddrivers)
             {
-                //textBox_info.AppendText(string.Format("Found driver {0}\r\n", driver));
+                Program.InfoWin.AddLine(string.Format("Found driver {0}", driver));
                 drivers.Add(driver.Substring(0, driver.Length - 4));
             }
-
         }
+
 
         public void enumerateports()
         {
-
             _driverport = new List<driverport>();
-            //if (this.IsHandleCreated == false)
-            //    return;
 
-            //this.Invoke(new MethodInvoker(delegate ()
             {
 
                 foreach (string s in drivers)
                 {
-                    //textBox_info.AppendText(String.Format("Attempting to enumerate with driver {0}\r\n", s));
-
                     try
                     {
                         Program.lco.enumerate(s);
                     }
                     catch (Exception e)
                     {
-                        //textBox_info.AppendText(e.ToString() + "\r\n");
+                        Program.InfoWin.AddLine(string.Format("Driver: {0} Enumerate error: {1}", s, e.ToString()));
                     }
                 }
-
-                //textBox_info.AppendText("\r\n");
 
                 foreach (KeyValuePair<string, List<string>> kvp in Program.lco.ports)
                 {
@@ -83,32 +71,11 @@ namespace CanMonitor
                         _driverport.Add(dp);
                     }
                 }
-
-                List<sComPortModel> psx = cpm.GetPorts();
-
-                foreach (sComPortModel p in psx)
-                {
-                    driverport dp = new driverport();
-
-                    if (p.vid == null || p.pid == null)
-                        continue;
-
-
-                    //fixme this was a hack for JLR to autodetect the HMI Can Boards using their
-                    //VID PID but it only keeps adding new items to the list
-                    //dp.port = string.Format($"USB/VID_{p.vid}/PID_{p.pid}");
-                    //dp.PID = p.pid;
-                    //dp.VID = p.vid;
-                    //dp.driver = "drivers\\can_canusb_win32";
-                    
-                    
-              //      _driverport.Add(dp);
-                }
             }
 
             portchangedevent?.Invoke(this, new EventArgs());
-
         }
+        
 
         private void Cpm_DeviceListChanged(object sender, EventArgs e)
         {
@@ -116,48 +83,85 @@ namespace CanMonitor
             DeviceListChanged?.Invoke(this, new EventArgs());
            
         }
-
-        private void S_DeviceDisconnected(object sender, EventArgs e)
-        {
-            if (Program.lco.isopen())
-                Program.lco.close();
-        }
-
-        private void S_DeviceConnected(object sender, EventArgs e)
-        {
-                sComPortModel s = (sComPortModel)sender;
-
-                Program.lco.close();
-
-                //FIXME hardcoded driver
-                Program.lco.open(s.port, (BUSSPEED)rate, "drivers\\can_canusb_win32");
-        }
+        
 
         public bool Open(driverport dp,BUSSPEED rate)
         {
             Program.lco.close();
             this.rate = rate;
-
             string port = dp.port;
-
-            if (dp.port.Contains("USB"))
-            {
-                sComPortModel s = cpm.requestSerialPortById(dp.VID, dp.PID, "", "");
-                s.DeviceConnected += S_DeviceConnected;
-                s.DeviceDisconnected += S_DeviceDisconnected;
-                port = s.port;
-            }
-
             return Program.lco.open(port, (BUSSPEED)rate, dp.driver);
   
         }
+        
 
         public void Close()
         {
             Program.lco.close();
         }
 
+        public string BusspeedToStr(BUSSPEED rate)
+        {
+            switch (rate)
+            {
+                case BUSSPEED.BUS_10Kbit: return ("10K");
+                case BUSSPEED.BUS_20Kbit: return ("20K");
+                case BUSSPEED.BUS_50Kbit: return ("50K");
+                case BUSSPEED.BUS_100Kbit: return ("100K");
+                case BUSSPEED.BUS_125Kbit: return ("125K");
+                case BUSSPEED.BUS_250Kbit: return ("250K");
+                case BUSSPEED.BUS_500Kbit: return ("500K");
+                case BUSSPEED.BUS_1Mbit: return ("1M");
+                case BUSSPEED.BUS_250Kbit_FD_1Mbit: return ("250K [FD:1M]");                    
+                case BUSSPEED.BUS_250Kbit_FD_2Mbit: return ("250K [FD:2M]");                    
+                case BUSSPEED.BUS_500Kbit_FD_1Mbit: return ("500K [FD:1M]");                
+                case BUSSPEED.BUS_500Kbit_FD_2Mbit: return ("500K [FD:2M]");                    
+                case BUSSPEED.BUS_500Kbit_FD_4Mbit: return ("500K [FD:4M]");                        
+                case BUSSPEED.BUS_1Mbit_FD_2Mbit: return ("1M [FD:2M]");                    
+                case BUSSPEED.BUS_1Mbit_FD_4Mbit: return ("1M [FD:4M]");                    
+                case BUSSPEED.BUS_1Mbit_FD_5Mbit: return ("1M [FD:5M]");                                                
+                default: return ("");
+            }
+        }
 
+
+        public BUSSPEED StrToBusspeed(string rate_str)
+        {
+            if (rate_str == "10K")
+                return (BUSSPEED.BUS_10Kbit);
+            else if (rate_str == "20K")
+                return (BUSSPEED.BUS_20Kbit);
+            else if (rate_str == "50K")
+                return (BUSSPEED.BUS_50Kbit);
+            else if (rate_str == "100K")
+                return (BUSSPEED.BUS_100Kbit);
+            else if (rate_str == "125K")
+                return (BUSSPEED.BUS_125Kbit);
+            else if (rate_str == "250K")
+                return (BUSSPEED.BUS_250Kbit);
+            else if (rate_str == "500K")
+                return (BUSSPEED.BUS_500Kbit);
+            else if (rate_str == "1M")                       
+                return (BUSSPEED.BUS_1Mbit);
+            else if (rate_str == "250K [FD:1M]")                
+                return (BUSSPEED.BUS_250Kbit_FD_1Mbit);                  
+            else if (rate_str == "250K [FD:2M]")
+                return (BUSSPEED.BUS_250Kbit_FD_2Mbit);                  
+            else if (rate_str == "500K [FD:1M]")
+                return (BUSSPEED.BUS_500Kbit_FD_1Mbit);                  
+            else if (rate_str == "500K [FD:2M]")
+                return (BUSSPEED.BUS_500Kbit_FD_2Mbit);                  
+            else if (rate_str == "500K [FD:4M]")
+                return (BUSSPEED.BUS_500Kbit_FD_4Mbit);                  
+            else if (rate_str == "1M [FD:2M]")
+                return (BUSSPEED.BUS_1Mbit_FD_2Mbit);                    
+            else if (rate_str == "1M [FD:4M]")
+                return (BUSSPEED.BUS_1Mbit_FD_4Mbit);                    
+            else if (rate_str == "1M [FD:5M]")
+                return (BUSSPEED.BUS_1Mbit_FD_5Mbit);  
+            else                      
+                return (BUSSPEED.BUS_125Kbit);                                                                                               
+        }
 
     }
 }

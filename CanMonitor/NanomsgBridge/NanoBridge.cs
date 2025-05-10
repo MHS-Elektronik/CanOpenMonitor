@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using PDOInterface;
 using libCanopenSimple;
 
@@ -21,17 +21,13 @@ namespace NanomsgBridge
             lcobridge.SendPacket(p, true);
         }
 
-        public void endsdo(int node, int index, int sub, byte[] payload)
-        {
-
-        }
 
         private void Lcobridge_packetevent(canpacket p, DateTime dt)
         {
             _lco.SendPacket(p, true);
         }
 
-        public string decodesdo(int node, int index, int sub, byte[] payload)
+        public string decodesdo(int index, int sub, canpacket payload)
         {
             return "";
         }

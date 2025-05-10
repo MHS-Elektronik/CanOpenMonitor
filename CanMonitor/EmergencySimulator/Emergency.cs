@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using libCanopenSimple;
 using PDOInterface;
 
 namespace EmergencySimulator
@@ -14,18 +15,15 @@ namespace EmergencySimulator
 
         public Emergency()
         {
-            addverb("EMCY Injector", "Tools", openform);
+            addverb("EMCY Injector", null, null, "Tools", openform);
         }
 
-        public string decodesdo(int node, int index, int sub, byte[] payload)
+        public string decodesdo(int index, int sub, canpacket payload)
         {
             return "";
         }
 
-        public void endsdo(int node, int index, int sub, byte[] payload)
-        {
-
-        }
+        
         public void registerPDOS()
         {
 

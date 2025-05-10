@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WeifenLuo.WinFormsUI.Docking;
 
 namespace CanMonitor
 {
@@ -16,9 +18,21 @@ namespace CanMonitor
 
         static public PluginManager pluginManager;
 
+        static public driverport opendp = null;
         static public libCanopenSimple.libCanopenSimple lco = new libCanopenSimple.libCanopenSimple();
 
         static public DriverLoader driverloader = new DriverLoader();
+        
+        
+        static public InfoLogDocument InfoWin = null;
+        static public NMTDocument NmtWin = null;
+        static public EmcyDocument EmcyWin = null;
+        static public CanLogForm CanWin = null;
+
+        static public MenuStrip MainMenuStrip = null;
+        static public ToolStrip MainToolBar = null;
+        static public StatusStrip MainStatusBar = null;
+        static public DockPanel MainDockPanel = null;
 
         /// <summary>
         /// The main entry point for the application.
@@ -39,14 +53,12 @@ namespace CanMonitor
             {
                 Directory.CreateDirectory(appdatafolder);
             }
-
-            pluginManager = new PluginManager();
             
             try 
-            {  
+            { 
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-
+                
                 Application.Run(new MainDockForm());
 
             }

@@ -1,4 +1,4 @@
-﻿using libCanopenSimple;
+using libCanopenSimple;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -32,6 +32,7 @@ namespace CanMonitor
         public NMTDocument()
         {
             InitializeComponent();
+            AutoScaleMode = AutoScaleMode.Dpi;            
             listView_nmt.DoubleBuffering(true);
 
             Program.lco.nmtecevent += Lco_nmtecevent;
@@ -43,6 +44,7 @@ namespace CanMonitor
 
         }
 
+
         public void clearlist()
         {
             lock (dirtyNMTstates)
@@ -51,15 +53,15 @@ namespace CanMonitor
                 dirtyNMTstates.Clear();
                 listView_nmt.Items.Clear();
             }
-
         }
+
 
         private void Lco_nmtecevent(libCanopenSimple.canpacket payload, DateTime dt)
         {
 
             string msg = "";
 
-            switch (payload.data[0])
+            switch (payload.dataByte[0])
             {
                 case 0x01:
                     msg = "Enter operational";
@@ -88,7 +90,7 @@ namespace CanMonitor
                     SNMTState s = NMTstate[node];
                     s.lastupdate = dt;
                     s.dirty = true;
-                    s.state = payload.data[0];
+                    s.state = payload.dataByte[0];
                     s.isnew = false;
                     s.statemsg = msg;
                     NMTstate[node] = s;
@@ -99,7 +101,7 @@ namespace CanMonitor
                     SNMTState s = new SNMTState();
                     s.lastupdate = dt;
                     s.dirty = true;
-                    s.state = payload.data[0];
+                    s.state = payload.dataByte[0];
                     s.statemsg = msg;
                     string[] ss = new string[3];
                     ss[0] = DateTime.Now.ToString();
@@ -117,6 +119,7 @@ namespace CanMonitor
             }
 
         }
+
 
         private void timer1_Tick(object sender, EventArgs e)
         {

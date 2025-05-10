@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35004.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "can_canusbd2xx_win32", "test_can_canusbd2xx_win32.vc10.vcxproj", "{E6A10BB6-B174-43FA-A35F-9F442C915111}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E6A10BB6-B174-43FA-A35F-9F442C915111}.Debug|x86.ActiveCfg = Debug|Win32
+		{E6A10BB6-B174-43FA-A35F-9F442C915111}.Debug|x86.Build.0 = Debug|Win32
+		{E6A10BB6-B174-43FA-A35F-9F442C915111}.Release|x86.ActiveCfg = Release|Win32
+		{E6A10BB6-B174-43FA-A35F-9F442C915111}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A41A8327-0770-4BE6-97C0-B53E010B7611}
+	EndGlobalSection
+EndGlobal

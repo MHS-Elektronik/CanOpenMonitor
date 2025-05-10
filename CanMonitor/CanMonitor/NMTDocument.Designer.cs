@@ -45,9 +45,8 @@
             this.listView_nmt.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listView_nmt.HideSelection = false;
             this.listView_nmt.Location = new System.Drawing.Point(0, 0);
-            this.listView_nmt.Margin = new System.Windows.Forms.Padding(4);
             this.listView_nmt.Name = "listView_nmt";
-            this.listView_nmt.Size = new System.Drawing.Size(800, 450);
+            this.listView_nmt.Size = new System.Drawing.Size(600, 366);
             this.listView_nmt.TabIndex = 1;
             this.listView_nmt.UseCompatibleStateImageBehavior = false;
             this.listView_nmt.View = System.Windows.Forms.View.Details;
@@ -72,10 +71,12 @@
             // 
             // NMTDocument
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(600, 366);
             this.Controls.Add(this.listView_nmt);
+            this.HideOnClose = true;
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "NMTDocument";
             this.Text = "NMTDocument";
             this.ResumeLayout(false);

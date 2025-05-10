@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+
 
 namespace CanMonitor
 {
@@ -21,8 +22,6 @@ namespace CanMonitor
     {
         public string driver;
         public string port;
-        public string VID;
-        public string PID;
 
         public override string ToString()
         {
@@ -34,14 +33,10 @@ namespace CanMonitor
         {
             if (obj == null)
                 return false;
-
             if (this.driver == obj.driver && this.port == obj.port)
                 return true;
-
             return false;
-
         }
-        
-
     }
+        
 }

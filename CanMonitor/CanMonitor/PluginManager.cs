@@ -1,4 +1,4 @@
-﻿using libCanopenSimple;
+using libCanopenSimple;
 using Microsoft.CSharp;
 using PDOInterface;
 using System;
@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
@@ -18,47 +19,17 @@ namespace CanMonitor
     {
 
         public Dictionary<string, object> plugins = new Dictionary<string, object>();
-
-        List<string> loadedplugins = new List<string>();
-
         public IPDOParser ipdo;
-        public Dictionary<UInt16, Func<byte[], string>> pdoprocessors = new Dictionary<ushort, Func<byte[], string>>();
-        public MenuStrip menuStrip1;
+        public Dictionary<UInt16, Func<canpacket, string>> pdoprocessors = new Dictionary<ushort, Func<canpacket, string>>();        
 
-        DockPanel dp;
 
         public PluginManager()
         {
-
             if (Program.lco == null)
                 return;
-
-            Program.lco.connectionevent += Lco_connectionevent;
-
+            Program.lco.connectionevent += Lco_connectionevent; 
         }
-
-        public void SetDockPanel(DockPanel p)
-        {
-            dp = p;
-
-        }
-
-        private void Lco_connectionevent(object sender, EventArgs e)
-        {
-            //invoked when the underlying libcanopensimple opens or closes a driver conenction
-            //send this message to all plugins that care
-
-            foreach (KeyValuePair<string, object> kvp in plugins)
-            {
-                // if (o is IInterfaceService)
-                {
-                    IInterfaceService iis = (IInterfaceService)kvp.Value;
-                    iis.DriverStateChange((ConnectionChangedEventArgs)e);
-                }
-            }
-
-        }
-
+        
 
         public void autoloadplugins()
         {
@@ -70,7 +41,7 @@ namespace CanMonitor
 
                 foreach (string plugin in autoload)
                 {
-                    loadplugin(plugin, false);
+                    loadplugin(plugin);
                 }
             }
 
@@ -83,43 +54,57 @@ namespace CanMonitor
 
                     foreach (string plugin in autoload)
                     {
-                        loadplugin(plugin, false);
+                        loadplugin(plugin);
                     }
                 }
             }
+            DriverStateChange(PL_APP_EVENT.INIT);
         }
 
-        public void loadplugin(String pfilename, bool addmru)
+
+        private void Lco_connectionevent(object sender, EventArgs e)
         {
+            //invoked when the underlying libcanopensimple opens or closes a driver conenction
+            //send this message to all plugins that care
 
-            if (menuStrip1 == null)
-                throw new Exception("Plugin manager setup incorrectly, need to pass the menustrip");
-
-            if (plugins.ContainsKey(pfilename))
+            foreach (KeyValuePair<string, object> kvp in plugins)
             {
-                try
-                {
-                    IInterfaceService iis = (IInterfaceService)plugins[pfilename];
-                    iis.deregisterplugin();
-
-                }
-                catch (Exception e)
-                {
-                    MessageBox.Show("Error deregistering plugin --- \n" + e.ToString());
-                }
-
-                plugins.Remove(pfilename);
-                loadedplugins.Remove(pfilename);
+                IInterfaceService iis = (IInterfaceService)kvp.Value;
+                iis.DriverStateChange((ConnectionChangedEventArgs)e);
             }
 
-          
+        }
+        
+        
+        public void PluginsDown()
+        {
+            DriverStateChange(PL_APP_EVENT.DOWN);
+        }
+        
+        
+        private void DriverStateChange(PL_APP_EVENT e)
+        {
+            foreach (KeyValuePair<string, object> kvp in plugins)
+            {
+                IInterfaceService iis = (IInterfaceService)kvp.Value;
+                iis.AppEvent(e);
+            }    
+        }     
+        
 
-            if (loadedplugins.Contains(pfilename))
-                return;
+        private void loadplugin(String pfilename)
+        {                
+            foreach (KeyValuePair<string, object> kvp in plugins)
+            {               
+                string s = Path.GetFileName(kvp.Key);
+                if (s == null)
+                    continue;                            
+                if (s.ToLower() == pfilename.ToLower())
+                    return;                
+            }
 
             try
             {
-
                 string filename = pfilename;
 
                 if (!File.Exists(filename))
@@ -142,9 +127,9 @@ namespace CanMonitor
 
 
                 string ext = Path.GetExtension(filename);
+                string plugin_path = Path.GetDirectoryName(filename);
 
                 Assembly assembly;
-
 
                 if (ext == ".cs")
                 {
@@ -159,9 +144,6 @@ namespace CanMonitor
                     parameters.ReferencedAssemblies.Add("libCanopenSimple.dll");
                     parameters.ReferencedAssemblies.Add("System.Windows.Forms");
                     parameters.ReferencedAssemblies.Add("System.Drawing");
-
-
-
 
                     // True - memory generation, false - external file generation
                     parameters.GenerateInMemory = true;
@@ -215,29 +197,12 @@ namespace CanMonitor
                             iis.setlco(Program.lco);
 
                             iis.preregisterPDOS(pdoprocessors);
+                            iis.SetMainWidgets(Program.MainMenuStrip, Program.MainToolBar, Program.MainStatusBar, Program.MainDockPanel);
                             ipdo.registerPDOS();
-
-
-                            if(obj is IInterfaceService2)
-                            {
-                                IInterfaceService2 iis2 = (IInterfaceService2)obj;
-                                iis2.setdockmanager(dp);
-                            }
-                           
-                            //fixme
-                            //textBox_info.AppendText(string.Format("SUCCESS loading plugin {0}\r\n", filename));
+                            Program.InfoWin.AddLine(string.Format("SUCCESS loading plugin {0}", filename));
                         }
 
                     }
-
-
-
-
-
-
-                    
-
-
             
                     if (type.GetInterface("PDOInterface.IInterfaceService") != null)
                     {
@@ -253,15 +218,39 @@ namespace CanMonitor
                         if (obj != null)
                         {
                             IInterfaceService iss = (IInterfaceService)obj;
+                            IVerb[] verbsroot;
 
-                            IVerb[] verbsroot = iss.GetVerbs("_root_");
+                            verbsroot = iss.GetVerbs("_button_");
+
+                            if (verbsroot != null)
+                            {
+                                foreach (IVerb v in verbsroot)
+                                {
+                                    if (v.Text == "---")
+                                    {
+                                        ToolStripSeparator item = new ToolStripSeparator();
+                                        Program.MainToolBar.Items.Add(item);
+                                    }
+                                    else
+                                    {
+                                        if (v.Pic != null)
+                                        {
+                                            Image img = Image.FromFile(plugin_path + Path.DirectorySeparatorChar + v.Pic);
+                                            ToolStripButton item = new ToolStripButton(v.Text, img, v.Action, v.Name);
+                                            Program.MainToolBar.Items.Add(item);
+                                        }
+                                    }                            
+                                }
+                            }
+
+                            verbsroot = iss.GetVerbs("_root_");
 
                             if (verbsroot != null)
                             {
                                 foreach (IVerb v in verbsroot)
                                 {
                                     bool found = false;
-                                    foreach (ToolStripItem ii in menuStrip1.Items)
+                                    foreach (ToolStripItem ii in Program.MainMenuStrip.Items)
                                     {
                                         if (ii.Text == v.Name)
                                         {
@@ -272,14 +261,13 @@ namespace CanMonitor
 
                                     if (found == false)
                                     {
-
-                                        menuStrip1.Items.Add(v.Name);
+                                        Program.MainMenuStrip.Items.Add(v.Name);
                                     }
 
                                 }
                             }
 
-                            foreach (ToolStripMenuItem ii in menuStrip1.Items)
+                            foreach (ToolStripMenuItem ii in Program.MainMenuStrip.Items)
                             {
                                 IVerb[] verbs = iss.GetVerbs(ii.Text);
 
@@ -287,36 +275,36 @@ namespace CanMonitor
                                 {
                                     foreach (IVerb v in verbs)
                                     {
-                                        if (v.Name == "---")
+                                        if (v.Text == "---")
                                         {
                                             ToolStripSeparator item = new ToolStripSeparator();
                                             ii.DropDownItems.Add(item);
                                         }
                                         else
                                         {
-                                            ToolStripMenuItem item = new ToolStripMenuItem(v.Name, null, v.Action);
+                                            ToolStripMenuItem item;
+                                            if (v.Pic != null)
+                                            {
+                                                Image img = Image.FromFile(plugin_path + v.Pic);
+                                                item = new ToolStripMenuItem(v.Text, img, v.Action, v.Name);
+                                            }
+                                            else
+                                            {
+                                                item = new ToolStripMenuItem(v.Text, null, v.Action, v.Name);
+                                            }
                                             ii.DropDownItems.Add(item);
                                         }
                                     }
                                 }
-                            }
+                            }                                                      
+                            
                         }
                     }
-                }
-
-                loadedplugins.Add(filename);
-
-                if (addmru)
-                {
-                    //fixme
-                    //addtoMRU(filename);
                 }
             }
             catch (Exception ex)
             {
-                //fixme
-                //textBox_info.AppendText("Failed loading plugi \r\n" + ex.ToString() + "\r\n");
-                //MessageBox.Show("Error loading plugin :"+pfilename);
+                Program.InfoWin.AddLine("Failed loading plugin \r\n" + ex.ToString() + "\r\n");
             }
 
 

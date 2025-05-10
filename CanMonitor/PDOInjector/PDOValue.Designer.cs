@@ -55,117 +55,126 @@
             // 
             this.numericUpDown_byte7.Enabled = false;
             this.numericUpDown_byte7.Hexadecimal = true;
-            this.numericUpDown_byte7.Location = new System.Drawing.Point(657, 15);
+            this.numericUpDown_byte7.Location = new System.Drawing.Point(424, 6);
+            this.numericUpDown_byte7.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_byte7.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
             this.numericUpDown_byte7.Name = "numericUpDown_byte7";
-            this.numericUpDown_byte7.Size = new System.Drawing.Size(55, 22);
+            this.numericUpDown_byte7.Size = new System.Drawing.Size(41, 20);
             this.numericUpDown_byte7.TabIndex = 19;
             // 
             // numericUpDown_byte6
             // 
             this.numericUpDown_byte6.Enabled = false;
             this.numericUpDown_byte6.Hexadecimal = true;
-            this.numericUpDown_byte6.Location = new System.Drawing.Point(583, 15);
+            this.numericUpDown_byte6.Location = new System.Drawing.Point(379, 6);
+            this.numericUpDown_byte6.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_byte6.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
             this.numericUpDown_byte6.Name = "numericUpDown_byte6";
-            this.numericUpDown_byte6.Size = new System.Drawing.Size(55, 22);
+            this.numericUpDown_byte6.Size = new System.Drawing.Size(41, 20);
             this.numericUpDown_byte6.TabIndex = 18;
             // 
             // numericUpDown_byte5
             // 
             this.numericUpDown_byte5.Enabled = false;
             this.numericUpDown_byte5.Hexadecimal = true;
-            this.numericUpDown_byte5.Location = new System.Drawing.Point(511, 15);
+            this.numericUpDown_byte5.Location = new System.Drawing.Point(334, 6);
+            this.numericUpDown_byte5.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_byte5.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
             this.numericUpDown_byte5.Name = "numericUpDown_byte5";
-            this.numericUpDown_byte5.Size = new System.Drawing.Size(55, 22);
+            this.numericUpDown_byte5.Size = new System.Drawing.Size(41, 20);
             this.numericUpDown_byte5.TabIndex = 17;
             // 
             // numericUpDown_byte4
             // 
             this.numericUpDown_byte4.Enabled = false;
             this.numericUpDown_byte4.Hexadecimal = true;
-            this.numericUpDown_byte4.Location = new System.Drawing.Point(441, 15);
+            this.numericUpDown_byte4.Location = new System.Drawing.Point(289, 6);
+            this.numericUpDown_byte4.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_byte4.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
             this.numericUpDown_byte4.Name = "numericUpDown_byte4";
-            this.numericUpDown_byte4.Size = new System.Drawing.Size(55, 22);
+            this.numericUpDown_byte4.Size = new System.Drawing.Size(41, 20);
             this.numericUpDown_byte4.TabIndex = 16;
             // 
             // numericUpDown_byte3
             // 
             this.numericUpDown_byte3.Enabled = false;
             this.numericUpDown_byte3.Hexadecimal = true;
-            this.numericUpDown_byte3.Location = new System.Drawing.Point(369, 15);
+            this.numericUpDown_byte3.Location = new System.Drawing.Point(244, 6);
+            this.numericUpDown_byte3.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_byte3.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
             this.numericUpDown_byte3.Name = "numericUpDown_byte3";
-            this.numericUpDown_byte3.Size = new System.Drawing.Size(55, 22);
+            this.numericUpDown_byte3.Size = new System.Drawing.Size(41, 20);
             this.numericUpDown_byte3.TabIndex = 15;
             // 
             // numericUpDown_byte2
             // 
             this.numericUpDown_byte2.Enabled = false;
             this.numericUpDown_byte2.Hexadecimal = true;
-            this.numericUpDown_byte2.Location = new System.Drawing.Point(291, 15);
+            this.numericUpDown_byte2.Location = new System.Drawing.Point(199, 6);
+            this.numericUpDown_byte2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_byte2.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
             this.numericUpDown_byte2.Name = "numericUpDown_byte2";
-            this.numericUpDown_byte2.Size = new System.Drawing.Size(55, 22);
+            this.numericUpDown_byte2.Size = new System.Drawing.Size(41, 20);
             this.numericUpDown_byte2.TabIndex = 14;
             // 
             // numericUpDown_byte1
             // 
             this.numericUpDown_byte1.Enabled = false;
             this.numericUpDown_byte1.Hexadecimal = true;
-            this.numericUpDown_byte1.Location = new System.Drawing.Point(215, 15);
+            this.numericUpDown_byte1.Location = new System.Drawing.Point(154, 6);
+            this.numericUpDown_byte1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_byte1.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
             this.numericUpDown_byte1.Name = "numericUpDown_byte1";
-            this.numericUpDown_byte1.Size = new System.Drawing.Size(55, 22);
+            this.numericUpDown_byte1.Size = new System.Drawing.Size(41, 20);
             this.numericUpDown_byte1.TabIndex = 13;
             // 
             // numericUpDown_bytes
             // 
-            this.numericUpDown_bytes.Location = new System.Drawing.Point(124, 15);
+            this.numericUpDown_bytes.Location = new System.Drawing.Point(94, 6);
+            this.numericUpDown_bytes.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_bytes.Maximum = new decimal(new int[] {
             8,
             0,
             0,
             0});
             this.numericUpDown_bytes.Name = "numericUpDown_bytes";
-            this.numericUpDown_bytes.Size = new System.Drawing.Size(60, 22);
+            this.numericUpDown_bytes.Size = new System.Drawing.Size(45, 20);
             this.numericUpDown_bytes.TabIndex = 12;
             this.numericUpDown_bytes.ValueChanged += new System.EventHandler(this.numericUpDown_bytes_ValueChanged);
             // 
             // numericUpDown_cob
             // 
             this.numericUpDown_cob.Hexadecimal = true;
-            this.numericUpDown_cob.Location = new System.Drawing.Point(12, 15);
+            this.numericUpDown_cob.Location = new System.Drawing.Point(10, 6);
+            this.numericUpDown_cob.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_cob.Maximum = new decimal(new int[] {
             1407,
             0,
@@ -177,7 +186,7 @@
             0,
             0});
             this.numericUpDown_cob.Name = "numericUpDown_cob";
-            this.numericUpDown_cob.Size = new System.Drawing.Size(94, 22);
+            this.numericUpDown_cob.Size = new System.Drawing.Size(70, 20);
             this.numericUpDown_cob.TabIndex = 11;
             this.numericUpDown_cob.Value = new decimal(new int[] {
             384,
@@ -187,9 +196,10 @@
             // 
             // button_send
             // 
-            this.button_send.Location = new System.Drawing.Point(817, 8);
+            this.button_send.Location = new System.Drawing.Point(525, 2);
+            this.button_send.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.button_send.Name = "button_send";
-            this.button_send.Size = new System.Drawing.Size(110, 35);
+            this.button_send.Size = new System.Drawing.Size(64, 28);
             this.button_send.TabIndex = 10;
             this.button_send.Text = "Send";
             this.button_send.UseVisualStyleBackColor = true;
@@ -199,19 +209,20 @@
             // 
             this.numericUpDown_byte8.Enabled = false;
             this.numericUpDown_byte8.Hexadecimal = true;
-            this.numericUpDown_byte8.Location = new System.Drawing.Point(730, 15);
+            this.numericUpDown_byte8.Location = new System.Drawing.Point(469, 6);
+            this.numericUpDown_byte8.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.numericUpDown_byte8.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
             this.numericUpDown_byte8.Name = "numericUpDown_byte8";
-            this.numericUpDown_byte8.Size = new System.Drawing.Size(55, 22);
+            this.numericUpDown_byte8.Size = new System.Drawing.Size(41, 20);
             this.numericUpDown_byte8.TabIndex = 20;
             // 
             // PDOValue
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.numericUpDown_byte8);
             this.Controls.Add(this.numericUpDown_byte7);
@@ -224,8 +235,9 @@
             this.Controls.Add(this.numericUpDown_bytes);
             this.Controls.Add(this.numericUpDown_cob);
             this.Controls.Add(this.button_send);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "PDOValue";
-            this.Size = new System.Drawing.Size(950, 54);
+            this.Size = new System.Drawing.Size(595, 33);
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_byte7)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_byte6)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_byte5)).EndInit();

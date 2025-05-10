@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,25 +9,21 @@ using WeifenLuo.WinFormsUI.Docking;
 
 namespace eeprom_plugin
 {
-    public class eeprom_plugin : InterfaceService, IInterfaceService2, IPDOParser
+    public class eeprom_plugin : InterfaceService, IPDOParser
     {
-        DockPanel dp;
         public eeprom_plugin()
         {
-            addverb("Tools", "_root_", null);
-            addverb("Reset EEprom", "Tools", showdlg);
+            addverb("Tools", null, null, "_root_", null);
+            addverb("Reset EEprom", null, null, "Tools", showdlg);
         }
 
         public void registerPDOS()
         {
 
         }
-        public void endsdo(int node, int index, int sub, byte[] payload)
-        {
 
-        }
 
-        public string decodesdo(int node, int index, int sub, byte[] payload)
+        public string decodesdo(int index, int sub, canpacket payload)
         {
             if(index==0x1010)
             {
@@ -49,15 +45,9 @@ namespace eeprom_plugin
                 return;
 
             ResetEEPROM re = new ResetEEPROM(_lco);
-            //re.Show();
 
-            re.Show(dp, DockState.DockLeft);
+            re.Show(MainDockPanel, DockState.DockLeft);
 
-        }
-
-        void IInterfaceService2.setdockmanager(DockPanel _dp)
-        {
-            this.dp = _dp;
         }
     }
 }

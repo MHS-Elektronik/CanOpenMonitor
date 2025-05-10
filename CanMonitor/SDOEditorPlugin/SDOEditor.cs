@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Timers;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using libEDSsharp;
@@ -14,173 +15,182 @@ using libCanopenSimple;
 using WeifenLuo.WinFormsUI.Docking;
 using System.Security.Cryptography;
 
+
 namespace SDOEditorPlugin
 {
+    public enum TReadMode
+    {
+        READ_STOP = 0,
+        READ_ALL,
+        READ_SEL
+    }
+    
+    
+    public struct sdocallbackhelper
+    {
+        public SDO sdo;
+        public ODentry od;
+    }
+    
+    
     public partial class SDOEditor : DockContent
     {
-
+        public ToolStripMenuItem SDOEdFileRecent;
         EDSsharp eds;
         libCanopenSimple.libCanopenSimple lco;
+        DockPanel MainDockPanel;
         string filename = null;
         private string appdatafolder;
 
         private List<string> _mru = new List<string>();
+        private System.Timers.Timer RefreshTimer = new System.Timers.Timer();
+        bool isdcf = false;
 
-        Timer refreshtimer = new Timer();
+        bool ReadAutoRepeatEnable;
+        bool CustomView;
+        TReadMode AktivReadMode;
+        List<ListViewItem> CustomList = new List<ListViewItem>();
 
 
-        public SDOEditor(libCanopenSimple.libCanopenSimple lco)
+        public SDOEditor(libCanopenSimple.libCanopenSimple lco, DockPanel main_dock_panel)
         {
             this.lco = lco;
+            MainDockPanel = main_dock_panel;
             InitializeComponent();
-            refreshtimer.Tick += Refreshtimer_Tick;
-        }
+            AutoScaleMode = AutoScaleMode.Dpi;
+            SetStyle(ControlStyles.DoubleBuffer | ControlStyles.ResizeRedraw, true );
+            RefreshTimer.Elapsed += RefreshTimer_Tick;
+            RefreshTimer.Interval = 1000; //(int)numericUpDown_refreshtime.Value*1000;<*>
+            RefreshTimer.AutoReset = false;
+        }                        
 
-        bool oknextread = false;
-
-        private void Refreshtimer_Tick(object sender, EventArgs e)
+        
+        private void InitSdoRead(ListViewItem lvi)
         {
-            if (oknextread == false)
-                return;
+            lvi.BackColor = Color.White;
+            sdocallbackhelper help = (sdocallbackhelper)lvi.Tag;
+
+            if (help.od.objecttype != ObjectType.DOMAIN)
+            {
+                SDO sdo = lco.SDOread((byte)numericUpDown_node.Value, (UInt16)help.od.Index, (byte)help.od.Subindex, gotit);
+                help.sdo = sdo;
+                lvi.Tag = help;
+            }
+        }            
 
 
-            if (button_read.Enabled == false)
-                return;
-
+        private void RefreshTimer_Tick(object sender, ElapsedEventArgs e)
+        {
             listView1.Invoke(new MethodInvoker(delegate
             {
-                button_read.Enabled = false;
-                foreach (ListViewItem lvi in listView1.Items)
+                if (AktivReadMode == TReadMode.READ_ALL)
                 {
-
-                    lvi.BackColor = Color.White;
-                    sdocallbackhelper help = (sdocallbackhelper)lvi.Tag;
-
-                    if (help.od.objecttype != ObjectType.DOMAIN)
-                    {
-                        SDO sdo = lco.SDOread((byte)numericUpDown_node.Value, (UInt16)help.od.Index, (byte)help.od.Subindex, gotit);
-                        help.sdo = sdo;
-                        lvi.Tag = help;
-                    }
-
+                    foreach (ListViewItem lvi in listView1.Items)
+                        InitSdoRead(lvi);
+                }    
+                else if (AktivReadMode == TReadMode.READ_SEL)
+                {
+                    foreach (ListViewItem lvi in listView1.SelectedItems)
+                        InitSdoRead(lvi);
                 }
-
             }));
         }
+
 
         private void loadeds(string filename)
         {
             if (filename == null || filename == "")
                 return;
-
-            bool isdcf = false;
+            
             bool isemptydcf = false;
-
-            button_writeDCF.Enabled = false;
 
             try
             {
-
                 switch (Path.GetExtension(filename).ToLower())
                 {
                     case ".xdd":
-                    {
+                        {
 
                             CanOpenXDD_1_1 xdd = new CanOpenXDD_1_1();
                             eds = xdd.ReadXML(filename);
-                          
 
-                                if(eds==null)
-                                {
-                                    CanOpenXDD xdd2 = new CanOpenXDD();
-                                    xdd2.readXML(filename);
+                            if (eds == null)
+                            {
+                                CanOpenXDD xdd2 = new CanOpenXDD();
+                                xdd2.readXML(filename);
 
-                                    Bridge b = new Bridge();
-                                    eds = xdd2.convert(xdd2.dev);
-                                }
-  
+                                Bridge b = new Bridge();
+                                eds = xdd2.convert(xdd2.dev);
+                            }
+
                             /*   
                             eds.xmlfilename = filename;
                             */
                         }
 
-                    break;
+                        break;
 
                     case ".xml":
-                    {
-                        CanOpenXML coxml = new CanOpenXML();
-                        coxml.readXML(filename);
+                        {
+                            CanOpenXML coxml = new CanOpenXML();
+                            coxml.readXML(filename);
 
-                        Bridge b = new Bridge();
+                            Bridge b = new Bridge();
 
-                        eds = b.convert(coxml.dev);
-                        eds.xmlfilename = filename;
-                    }
+                            eds = b.convert(coxml.dev);
+                            eds.xmlfilename = filename;
+                        }
 
-                    break;
+                        break;
 
                     case ".dcf":
-                    {
-                        isdcf = true;
-                        if (listView1.Items.Count == 0)
-                            isemptydcf = true;
+                        {
+                            isdcf = true;
+                            if (listView1.Items.Count == 0)
+                                isemptydcf = true;
 
-                        eds = new EDSsharp();
-                        eds.Loadfile(filename);
-                        button_writeDCF.Enabled = true;
-
-                    }
-                    break;
+                            eds = new EDSsharp();
+                            eds.Loadfile(filename);
+                        }
+                        break;
 
                     case ".eds":
-                    {
-                        eds = new EDSsharp();
-                        eds.Loadfile(filename);
-
-                    }
-                    break;
+                        {
+                            eds = new EDSsharp();
+                            eds.Loadfile(filename);
+                        }
+                        break;
 
 
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 MessageBox.Show(e.ToString());
                 return;
             }
 
-            if(eds!=null)
-               textBox_edsfilename.Text = eds.di.ProductName;
-
-
-            //if (eds.di.concreteNodeId >= numericUpDown_node.Minimum && eds.di.concreteNodeId <= numericUpDown_node.Maximum)
-            //    numericUpDown_node.Value = eds.di.concreteNodeId;
-
-            updatetable(isdcf,isemptydcf);
-
-
+            CustomView = false;
+            CustomList.Clear();
+            UpdateTable(isdcf, isemptydcf);
 
             this.ToolTipText = eds.di.ProductName;
-            this.DockHandler.TabText = "OD: "+eds.di.ProductName;
+            this.DockHandler.TabText = "OD: " + eds.di.ProductName;
 
             this.filename = filename;
-            addtoMRU(filename);
+            addtoMRU(SDOEdFileRecent, filename);
         }
 
-        private void updatetable(bool isdcf=false,bool isemptydcf=false)
-        {
 
+        private void UpdateTable(bool isdcf = false, bool isemptydcf = false)
+        {
             listView1.BeginUpdate();
             if (!isdcf)
                 listView1.Items.Clear();
 
             //           StorageLocation loc = StorageLocation
-
-
             foreach (ODentry tod in eds.ods.Values)
             {
-
-
                 if (comboBoxtype.SelectedItem.ToString() != "ALL")
                 {
                     if (comboBoxtype.SelectedItem.ToString() == "EEPROM" && (tod.prop.CO_storageGroup.ToUpper() != "EEPROM"))
@@ -189,10 +199,7 @@ namespace SDOEditorPlugin
                         continue;
                     if (comboBoxtype.SelectedItem.ToString() == "RAM" && (tod.prop.CO_storageGroup.ToUpper() != "RAM"))
                         continue;
-
                 }
-
-
                 if (tod.prop.CO_disabled == true)
                     continue;
 
@@ -210,30 +217,10 @@ namespace SDOEditorPlugin
                     }
 
                     continue;
-
                 }
-
                 addtolist(tod, isdcf, isemptydcf);
-
-
             }
-
             listView1.EndUpdate();
-
-
-
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-
-
-        }
-
-        public struct sdocallbackhelper
-        {
-            public SDO sdo;
-            public ODentry od;
         }
 
 
@@ -251,10 +238,9 @@ namespace SDOEditorPlugin
             }
         }
 
-        void addtolist(ODentry od, bool dcf,bool isemptydcf)
+
+        void addtolist(ODentry od, bool dcf, bool isemptydcf)
         {
-
-
             if (!dcf || isemptydcf)
             {
                 string[] items = new string[7];
@@ -274,22 +260,10 @@ namespace SDOEditorPlugin
                 {
                     items[3] = od.datatype.ToString();
                 }
-
-
                 items[4] = od.defaultvalue;
-
-
-
                 items[5] = "";
 
-                //  items[6] = od.actualvalue;
-
-
                 ListViewItem lvi = new ListViewItem(items);
-
-
-
-                // SDO sdo = lco.SDOread((byte)numericUpDown_node.Value, (UInt16)od.index, (byte)od.subindex, gotit);
 
                 sdocallbackhelper help = new sdocallbackhelper();
                 help.sdo = null;
@@ -306,39 +280,32 @@ namespace SDOEditorPlugin
 
         }
 
+
         void upsucc(SDO sdo)
         {
-
-            //button_read_Click(null, null);
-
-           
-                listView1.BeginInvoke(new MethodInvoker(delegate
+            listView1.BeginInvoke(new MethodInvoker(delegate
+            {
+                foreach (ListViewItem lvi in listView1.Items)
                 {
-                    foreach (ListViewItem lvi in listView1.Items)
+                    sdocallbackhelper help = (sdocallbackhelper)lvi.Tag;
+
+                    if (help.sdo != sdo)
+                        continue;
+
+                    if (help.od.objecttype != ObjectType.DOMAIN)
                     {
+                        sdo = lco.SDOread((byte)numericUpDown_node.Value, (UInt16)help.od.Index, (byte)help.od.Subindex, gotit);
+                        help.sdo = sdo;
+                        lvi.Tag = help;
 
-
-                        sdocallbackhelper help = (sdocallbackhelper)lvi.Tag;
-
-                        if (help.sdo != sdo)
-                            continue;
-
-                        if (help.od.objecttype != ObjectType.DOMAIN)
-                        {
-                            oknextread = true;
-                            sdo = lco.SDOread((byte)numericUpDown_node.Value, (UInt16)help.od.Index, (byte)help.od.Subindex, gotit);
-                            help.sdo = sdo;
-                            lvi.Tag = help;
-
-                            break;
-                        }
-
-
+                        break;
                     }
-                }));
-            
+                }
+            }));
+
 
         }
+
 
         void testnumber(ListViewItem lvi)
         {
@@ -353,21 +320,28 @@ namespace SDOEditorPlugin
             }
         }
 
+
         void gotit(SDO sdo)
         {
             try
             {
-
                 System.Threading.Thread.Sleep(10);
 
                 listView1.Invoke(new MethodInvoker(delegate
                 {
 
                     if (lco.getSDOQueueSize() == 0)
-                        button_read.Enabled = true;
-
+                    {
+                        if ((ReadAutoRepeatEnable == true) && (AktivReadMode != TReadMode.READ_STOP))
+                            RefreshTimer.Start();
+                        else    
+                            {
+                            AktivReadMode = TReadMode.READ_STOP;
+                            UpdateReadWriteButtons();
+                            }    
+                    }
                     label_sdo_queue_size.Text = string.Format("SDO Queue Size: {0}", lco.getSDOQueueSize());
-
+                    //listView1.BeginUpdate();
                     foreach (ListViewItem lvi in listView1.Items)
                     {
                         sdocallbackhelper h = (sdocallbackhelper)lvi.Tag;
@@ -408,71 +382,65 @@ namespace SDOEditorPlugin
                                         break;
 
                                     case DataType.REAL64:
-
-                                        double myDouble = System.BitConverter.ToDouble(h.sdo.databuffer, 0);
-                                        lvi.SubItems[5].Text = myDouble.ToString();
-
-                                        //fixme bad test
-                                        if(lvi.SubItems[5].Text!=lvi.SubItems[4].Text)
                                         {
-                                            lvi.BackColor = Color.Red;
+                                            double myDouble = System.BitConverter.ToDouble(h.sdo.databuffer, 0);
+                                            lvi.SubItems[5].Text = myDouble.ToString();
+
+                                            //fixme bad test
+                                            if (lvi.SubItems[5].Text != lvi.SubItems[4].Text)
+                                            {
+                                                lvi.BackColor = Color.Red;
+                                            }
+
+                                            break;
                                         }
-
-                                        break;
-
                                     case DataType.INTEGER8:
-                                    {
-                                        testnumber(lvi);
+                                        {
+                                            testnumber(lvi);
 
-                                        byte[] data = BitConverter.GetBytes(h.sdo.expitideddata);
-                                        byte num = data[0];
-                                        lvi.SubItems[5].Text = String.Format("{0}", num);
-                                        break;
-                                    }
-
+                                            byte[] data = BitConverter.GetBytes(h.sdo.expitideddata);
+                                            byte num = data[0];
+                                            lvi.SubItems[5].Text = String.Format("[0x{0:X2}]  {0}", num);
+                                            break;
+                                        }
                                     case DataType.INTEGER16:
-                                    {
-                                        testnumber(lvi);
+                                        {
+                                            testnumber(lvi);
 
-                                        byte[] data = BitConverter.GetBytes(h.sdo.expitideddata);
-                                        Int16 num = BitConverter.ToInt16(data, 0);
-                                        lvi.SubItems[5].Text = String.Format("{0}", num);
-                                        break;
-                                    }
-
+                                            byte[] data = BitConverter.GetBytes(h.sdo.expitideddata);
+                                            Int16 num = BitConverter.ToInt16(data, 0);
+                                            lvi.SubItems[5].Text = String.Format("[0x{0:X4}]  {0}", num);
+                                            break;
+                                        }
                                     case DataType.INTEGER32:
-                                    {
+                                        {
+                                            testnumber(lvi);
 
-                                        testnumber(lvi);
-
-                                        byte[] data = BitConverter.GetBytes(h.sdo.expitideddata);
-                                        Int32 num = BitConverter.ToInt32(data, 0);
-                                        lvi.SubItems[5].Text = String.Format("{0}", num);
-                                        break;
-
-                                    }
-
+                                            byte[] data = BitConverter.GetBytes(h.sdo.expitideddata);
+                                            Int32 num = BitConverter.ToInt32(data, 0);
+                                            lvi.SubItems[5].Text = String.Format("[0x{0:X8}]  {0}", num);
+                                            break;
+                                        }
                                     case DataType.UNSIGNED8:
-
-                                       
-
-                                    case DataType.UNSIGNED16:
-
-
-                                    case DataType.UNSIGNED32:
-
-                                        if(meh== DataType.UNSIGNED8)
+                                        {
                                             h.sdo.expitideddata &= 0x000000FF;
-                                        if(meh == DataType.UNSIGNED16)
+                                            lvi.SubItems[5].Text = String.Format("[0x{0:X2}]  {0}", h.sdo.expitideddata);
+                                            testnumber(lvi);
+                                            break;                                            
+                                        }
+                                    case DataType.UNSIGNED16:
+                                        {
                                             h.sdo.expitideddata &= 0x0000FFFF;
-
-
-                                        lvi.SubItems[5].Text = String.Format("{0}", h.sdo.expitideddata);
-
-                                        testnumber(lvi);
-
-                                        break;
-
+                                            lvi.SubItems[5].Text = String.Format("[0x{0:X4}]  {0}", h.sdo.expitideddata);
+                                            testnumber(lvi);
+                                            break;                                            
+                                        }
+                                    case DataType.UNSIGNED32:
+                                        {                                                
+                                            lvi.SubItems[5].Text = String.Format("[0x{0:X8}]  {0}", h.sdo.expitideddata);
+                                            testnumber(lvi);
+                                            break;
+                                        }
                                     case DataType.VISIBLE_STRING:
 
                                         lvi.SubItems[5].Text = System.Text.Encoding.UTF8.GetString(h.sdo.databuffer);
@@ -480,7 +448,6 @@ namespace SDOEditorPlugin
                                         {
                                             lvi.BackColor = Color.Red;
                                         }
-
 
                                         break;
 
@@ -501,54 +468,49 @@ namespace SDOEditorPlugin
                                             lvi.BackColor = Color.Red;
                                         }
 
-
                                         break;
 
 
                                     case DataType.UNSIGNED64:
-                                    {
-                                        testnumber(lvi);
+                                        {
+                                            testnumber(lvi);
 
-                                        UInt64 data = (UInt64)System.BitConverter.ToUInt64(h.sdo.databuffer, 0);
-                                        lvi.SubItems[5].Text = String.Format("{0:x}", data);
-                                    }
-                                    break;
+                                            UInt64 data = (UInt64)System.BitConverter.ToUInt64(h.sdo.databuffer, 0);
+                                            lvi.SubItems[5].Text = String.Format("{0:x}", data);
+                                        }
+                                        break;
 
                                     case DataType.INTEGER64:
-                                    {
-                                        testnumber(lvi);
+                                        {
+                                            testnumber(lvi);
 
-                                        Int64 data = (Int64)System.BitConverter.ToInt64(h.sdo.databuffer, 0);
-                                        lvi.SubItems[5].Text = String.Format("{0:x}", data);
-                                    }
-                                    break;
+                                            Int64 data = (Int64)System.BitConverter.ToInt64(h.sdo.databuffer, 0);
+                                            lvi.SubItems[5].Text = String.Format("{0:x}", data);
+                                        }
+                                        break;
 
                                     case DataType.BOOLEAN:
-                                    {
+                                        {
                                             lvi.SubItems[5].Text = String.Format("{0}", h.sdo.expitideddata);
                                             testnumber(lvi);
-                                    }
-                                    break;
+                                        }
+                                        break;
 
 
                                     case DataType.DOMAIN:
-
-
                                         // Console.WriteLine(sdo.ToString());
 
                                         lvi.SubItems[5].Text = String.Format("Domain Len = {0}", h.sdo.databuffer.Length);
-
                                         
+                                        //       StreamWriter file = new StreamWriter(string.Format("DOMAIN_{0}-{1}.txt",h.sdo.index,h.sdo.subindex));
 
-                                 //       StreamWriter file = new StreamWriter(string.Format("DOMAIN_{0}-{1}.txt",h.sdo.index,h.sdo.subindex));
+                                        //       for(int p=0;p<h.sdo.databuffer.Length;p++)
+                                        //       {
+                                        //           file.WriteLine(h.sdo.databuffer[p].ToString());
+                                        //       }
 
-                                 //       for(int p=0;p<h.sdo.databuffer.Length;p++)
-                                 //       {
-                                 //           file.WriteLine(h.sdo.databuffer[p].ToString());
-                                 //       }
-                                        
 
-                                 //       file.Close();
+                                        //       file.Close();
 
 
                                         break;
@@ -557,43 +519,33 @@ namespace SDOEditorPlugin
                                     default:
                                         lvi.SubItems[5].Text = " **UNSUPPORTED **";
                                         break;
-
-
                                 }
 
-                                if(lvi.BackColor==Color.Red)
+                                if (lvi.BackColor == Color.Red)
                                 {
-                                    if(h.od.accesstype == EDSsharp.AccessType.ro || h.od.accesstype==EDSsharp.AccessType.@const)
+                                    if (h.od.accesstype == EDSsharp.AccessType.ro || h.od.accesstype == EDSsharp.AccessType.@const)
                                     {
                                         lvi.BackColor = Color.Yellow;
                                     }
                                 }
-
                             }
                             break;
                         }
 
                         h.od.actualvalue = lvi.SubItems[5].Text;
-                        oknextread = true;
-
                     }
-
-
-
+                    //listView1.EndUpdate();
                 }));
             }
             catch (Exception e)
             {
 
-
             }
-
             return;
-
-
         }
 
-        private SDO dovalueupdate(sdocallbackhelper h,string sval)
+
+        private SDO dovalueupdate(sdocallbackhelper h, string sval)
         {
             DataType dt = h.od.datatype;
 
@@ -605,124 +557,107 @@ namespace SDOEditorPlugin
             switch (dt)
             {
                 case DataType.REAL32:
-                {
-
-                    float val = (float)new SingleConverter().ConvertFromString(sval);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
-                    break;
-                }
+                    {
+                        float val = (float)new SingleConverter().ConvertFromString(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
+                        break;
+                    }
 
                 case DataType.REAL64:
-                {
-
-                    double val = (double)new DoubleConverter().ConvertFromString(sval);
-                    byte[] payload = BitConverter.GetBytes(val);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, payload, upsucc);
-                    break;
-                }
+                    {
+                        double val = (double)new DoubleConverter().ConvertFromString(sval);
+                        byte[] payload = BitConverter.GetBytes(val);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, payload, upsucc);
+                        break;
+                    }
 
                 case DataType.INTEGER8:
-                {
-                    sbyte val = (sbyte)new SByteConverter().ConvertFromString(sval);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
-                    break;
-                }
+                    {
+                        sbyte val = (sbyte)new SByteConverter().ConvertFromString(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
+                        break;
+                    }
 
                 case DataType.INTEGER16:
-                {
-                    Int16 val = (Int16)new Int16Converter().ConvertFromString(sval);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
-                    break;
-                }
-
-    
-                case DataType.INTEGER32:
-                {
-                    Int32 val = (Int32)new Int32Converter().ConvertFromString(sval);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
-                    break;
-                }
-                case DataType.UNSIGNED8:
-                {
-                    byte val = (byte)new ByteConverter().ConvertFromString(sval);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
-                    break;
-                }
-                case DataType.UNSIGNED16:
-                {
-                    UInt16 val = (UInt16)new UInt16Converter().ConvertFromString(sval);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
-                    break;
-                }
-
-                case DataType.UNSIGNED32:
-                {
-                    UInt32 val = (UInt32)new UInt32Converter().ConvertFromString(sval);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
-                    break;
-                }
-
-                case DataType.INTEGER64:
-                {
-
-                    Int64 val = (Int64)new Int64Converter().ConvertFromString(sval);
-                    byte[] payload = BitConverter.GetBytes(val);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, payload, upsucc);
-                    break;
-                }
-
-                case DataType.UNSIGNED64:
-                {
-
-                    UInt64 val = (UInt64)new UInt64Converter().ConvertFromString(sval);
-                    byte[] payload = BitConverter.GetBytes(val);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, payload, upsucc);
-                    break;
-                }
-
-                case DataType.VISIBLE_STRING:
-                {
-
-                    byte[] payload = Encoding.ASCII.GetBytes(sval);
-                    sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, payload, upsucc);
-                    break;
-                }
-
-                case DataType.BOOLEAN:
-                {
-
-                        byte val = (byte)new ByteConverter().ConvertFromString(sval);
-                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
-                        
-                        break;
-                }
-
-                case DataType.DOMAIN:
                     {
-
-                        byte[] bytes = Encoding.ASCII.GetBytes(sval);
-
-                        
-
-                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, bytes, upsucc);
-
-
+                        Int16 val = (Int16)new Int16Converter().ConvertFromString(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
                         break;
                     }
 
 
+                case DataType.INTEGER32:
+                    {
+                        Int32 val = (Int32)new Int32Converter().ConvertFromString(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
+                        break;
+                    }
+                case DataType.UNSIGNED8:
+                    {
+                        byte val = (byte)new ByteConverter().ConvertFromString(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
+                        break;
+                    }
+                case DataType.UNSIGNED16:
+                    {
+                        UInt16 val = (UInt16)new UInt16Converter().ConvertFromString(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
+                        break;
+                    }
+
+                case DataType.UNSIGNED32:
+                    {
+                        UInt32 val = (UInt32)new UInt32Converter().ConvertFromString(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
+                        break;
+                    }
+
+                case DataType.INTEGER64:
+                    {
+                        Int64 val = (Int64)new Int64Converter().ConvertFromString(sval);
+                        byte[] payload = BitConverter.GetBytes(val);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, payload, upsucc);
+                        break;
+                    }
+
+                case DataType.UNSIGNED64:
+                    {
+                        UInt64 val = (UInt64)new UInt64Converter().ConvertFromString(sval);
+                        byte[] payload = BitConverter.GetBytes(val);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, payload, upsucc);
+                        break;
+                    }
+
+                case DataType.VISIBLE_STRING:
+                    {
+                        byte[] payload = Encoding.ASCII.GetBytes(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, payload, upsucc);
+                        break;
+                    }
+
+                case DataType.BOOLEAN:
+                    {
+                        byte val = (byte)new ByteConverter().ConvertFromString(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, val, upsucc);
+                        break;
+                    }
+
+                case DataType.DOMAIN:
+                    {
+                        byte[] bytes = Encoding.ASCII.GetBytes(sval);
+                        sdo = lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)h.od.Index, (byte)h.od.Subindex, bytes, upsucc);
+                        break;
+                    }
                 default:
 
                     break;
             }
-
             return sdo;
-
         }
 
-        private void listView1_DoubleClick(object sender, EventArgs e)
-        {
 
+        private void WriteSelectedSDOValue()
+        {
             if (listView1.SelectedItems.Count == 0)
                 return;
 
@@ -733,24 +668,23 @@ namespace SDOEditorPlugin
             }
 
             sdocallbackhelper h = (sdocallbackhelper)listView1.SelectedItems[0].Tag;
-            ValueEditor ve = new ValueEditor(h.od, listView1.SelectedItems[0].SubItems[5].Text);
-
-            if (h.od.prop.CO_storageGroup == "ROM")
-            {
-               // MessageBox.Show("Should not edit ROM objects");
-
-            }
-
-            ve.UpdateValue += delegate (string s)
-            {
-                h.sdo = dovalueupdate(h, s);
-                listView1.SelectedItems[0].Tag = h;
-            };
-
-            ve.SaveValue += delegate (string file, ODentry od)
-            {
-                if (od.objecttype != ObjectType.DOMAIN)
+            if (h.od.objecttype == ObjectType.DOMAIN)
+            {    
+                DomainEditor de = new DomainEditor(h.od);
+                de.ShowDialog();
+            }    
+            else
+            { 
+                ValueEditor ve = new ValueEditor(h.od, listView1.SelectedItems[0].SubItems[5].Text);
+                
+                ve.UpdateValue += delegate (string s)
                 {
+                    h.sdo = dovalueupdate(h, s);
+                    listView1.SelectedItems[0].Tag = h;
+                };
+
+/*                ve.SaveValue += delegate (string file, ODentry od)<*>
+                {                
                     lco.SDOread((byte)this.numericUpDown_node.Value, od.Index, (byte)od.Subindex, delegate (SDO s)
                     {
                         try
@@ -769,89 +703,22 @@ namespace SDOEditorPlugin
                             MessageBox.Show("Error: " + ex.ToString());
                         }
                     });
-                }
-            };
-
-
-            //SDO sdo = null;
-            if (ve.ShowDialog() == DialogResult.OK)
-            {
-
-            }
+                }; */
+                ve.ShowDialog();
+            }                        
         }
 
-        private void Ve_UpdateValue(string value)
-        {
-
-        }
-
-        private void button_read_Click(object sender, EventArgs e)
-        {
-
-            if (!lco.isopen())
-            {
-                MessageBox.Show("CAN not open");
-                return;
-            }
-
-            if(numericUpDown_node.Value == 0)
-            {
-                MessageBox.Show("You cannot read from Node 0, please select a node");
-                return;
-            }
-
-            listView1.Invoke(new MethodInvoker(delegate
-            {
-                button_read.Enabled = false;
-                foreach (ListViewItem lvi in listView1.Items)
-                {
-
-                    lvi.BackColor = Color.White;
-                    sdocallbackhelper help = (sdocallbackhelper)lvi.Tag;
-
-                    if (help.od.objecttype != ObjectType.DOMAIN)
-                    {
-                        oknextread = false;
-                        SDO sdo = lco.SDOread((byte)numericUpDown_node.Value, (UInt16)help.od.Index, (byte)help.od.Subindex, gotit);
-                        help.sdo = sdo;
-                        lvi.Tag = help;
-                    }
-
-                }
-
-            }));
-
-
-
-        }
-
-        private void loadEDSXMLToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog odf = new OpenFileDialog();
-            odf.Filter = "All supported files (*.eds;*.xml;*.xdd;*.dcf)|*.eds;*.xml;*.xdd;*.dcf|XML Electronic Data Sheet (*.xdd)|*.xdd|Legacy CanOpenNode project (*.xml)|*.xml|Electronic Datasheet (*.eds)|*.eds|Device Configuration File (*.dcf)|*.dcf";
-            if (odf.ShowDialog() == DialogResult.OK)
-            {
-
-                button_writeDCF.Enabled = false;
-                loadeds(odf.FileName);
-            }
-
-        }
 
         void OpenRecentFile(object sender, EventArgs e)
         {
             var menuItem = (ToolStripMenuItem)sender;
             var filepath = (string)menuItem.Tag;
             loadeds(filepath);
-
+            Show(MainDockPanel, DockState.Document);
         }
 
-        private void comboBoxtype_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            loadeds(filename);
-        }
 
-        private void addtoMRU(string path)
+        private void addtoMRU(ToolStripMenuItem menue_item, string path)
         {
             // if it already exists remove it then let it readd itsself
             // so it will be promoted to the top of the list
@@ -863,14 +730,13 @@ namespace SDOEditorPlugin
             if (_mru.Count > 10)
                 _mru.RemoveAt(10);
 
-            populateMRU();
-
+            populateMRU(menue_item);
         }
 
-        private void populateMRU()
-        {
 
-            mnuRecentlyUsed.DropDownItems.Clear();
+        private void populateMRU(ToolStripMenuItem menue_item)
+        {
+            menue_item.DropDownItems.Clear();
 
             foreach (var path in _mru)
             {
@@ -887,22 +753,32 @@ namespace SDOEditorPlugin
                     case ".eds":
                         item.Image = Properties.Resource1.EventLog_5735;
                         break;
-
-
-
                 }
 
-                mnuRecentlyUsed.DropDownItems.Add(item);
+                menue_item.DropDownItems.Add(item);
             }
         }
 
+
         private void SDOEditor_FormClosed(object sender, FormClosedEventArgs e)
+        {
+        }
+
+
+        public void SaveMruList()
         {
             var mruFilePath = Path.Combine(appdatafolder, "SDOMRU.txt");
             System.IO.File.WriteAllLines(mruFilePath, _mru);
         }
 
+
         private void SDOEditor_Load(object sender, EventArgs e)
+        {
+
+        }
+
+
+        public void LoadMruList()
         {
             //First lets create an appdata folder
 
@@ -920,77 +796,23 @@ namespace SDOEditorPlugin
             if (System.IO.File.Exists(mruFilePath))
                 _mru.AddRange(System.IO.File.ReadAllLines(mruFilePath));
 
-            populateMRU();
+            populateMRU(SDOEdFileRecent);
         }
 
-        private void saveDifferenceToolStripMenuItem_Click(object sender, EventArgs e)
-        {
 
-            SaveFileDialog odf = new SaveFileDialog();
-            odf.Filter = "(*.dcf)|*.dcf";
-            if (odf.ShowDialog() == DialogResult.OK)
+        public void SdoEditorSendSaveReq()
+        {
+            lco.SDOwrite((byte) numericUpDown_node.Value, (UInt16)0x1010, (byte)0x01, (UInt32)0x65766173, null);
+        }
+
+
+        public void SdoEditorWriteDcf()
+        {
+            if (isdcf == false)
             {
-
-                foreach (ListViewItem lvi in listView1.Items)
-                {
-
-                    string index = lvi.SubItems[0].Text;
-                    string sub = lvi.SubItems[1].Text;
-                    string name = lvi.SubItems[2].Text;
-
-
-                    sdocallbackhelper help = (sdocallbackhelper)lvi.Tag;
-
-                    string defaultstring = help.od.defaultvalue;
-                    string currentstring = help.od.actualvalue;
-
-                    UInt16 key = Convert.ToUInt16(index, 16);
-                    UInt16 subi = Convert.ToUInt16(sub, 16);
-
-                    if (subi == 0)
-                    {
-                        eds.ods[key].actualvalue = currentstring;
-                    }
-                    else
-                    {
-                        ODentry subod = eds.ods[key].Getsubobject(subi);
-                        if (subod != null)
-                        {
-                            subod.actualvalue = currentstring;
-                        }
-                    }
-
-                    // file.WriteLine(string.Format("{0}\t{1}\t{2}\t{3}\t{4}",index,sub,name,defaultstring,currentstring));
-                }
-
-                eds.Savefile(odf.FileName, InfoSection.Filetype.File_DCF);
-
-                //file.Close();
-            }
-
-
-        }
-
-        private void panel1_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
-        private void button1_Click_1(object sender, EventArgs e)
-        {
-            lco.SDOwrite((byte)numericUpDown_node.Value, (UInt16)0x1010, (byte)0x01, (UInt32)0x65766173, null);
-        }
-
-        private void button_flush_queue_Click(object sender, EventArgs e)
-        {
-            lco.flushSDOqueue();
-            button_read.Enabled = true;
-
-        }
-
-        private void button_writeDCF_Click(object sender, EventArgs e)
-        {
-
+                MessageBox.Show("No DCF file loaded");
+                return;
+            }              
             if(numericUpDown_node.Value==0)
             {
                 MessageBox.Show("Cannot write to node 0, please select a valid node");
@@ -1032,154 +854,329 @@ namespace SDOEditorPlugin
                 }
             }
         }
-
-        private void checkBox_autorefresh_CheckedChanged(object sender, EventArgs e)
+        
+        
+        public void SdoEditorLoadFile()
         {
-            if(checkBox_autorefresh.Checked==true)
+            OpenFileDialog odf = new OpenFileDialog();
+            odf.Filter = "All supported files (*.eds;*.xml;*.xdd;*.dcf)|*.eds;*.xml;*.xdd;*.dcf|XML Electronic Data Sheet (*.xdd)|*.xdd|Legacy CanOpenNode project (*.xml)|*.xml|Electronic Datasheet (*.eds)|*.eds|Device Configuration File (*.dcf)|*.dcf";
+            if (odf.ShowDialog() == DialogResult.OK)
             {
-                refreshtimer.Interval = (int)numericUpDown_refreshtime.Value*1000;
-                refreshtimer.Enabled = true;
-            }
-            else
-            {
-                refreshtimer.Enabled = false;
-            }
-
-        }
-
-        private void button_addcustom_Click(object sender, EventArgs e)
-        {
-            List<ListViewItem> lvi2 = new List<ListViewItem>();
-
-            foreach(ListViewItem lvi in listView1.SelectedItems)
-            {
-                lvi2.Add(lvi);
-            }
-
-            listView1.Items.Clear();
-
-            foreach(ListViewItem lvi in lvi2)
-            {
-                listView1.Items.Add(lvi);
+                loadeds(odf.FileName);
+                Show(MainDockPanel, DockState.Document);
             }
 
         }
+        
 
-        ushort scanindex = 0x1000;
-        byte scansub = 0x00;
-        byte maxsub = 0;
-        ODentry parentval = null;
-
-        private void button_scan_Click(object sender, EventArgs e)
+        public void SdoEditorSaveDifference()
         {
-
-            scanindex = 0x1018;
-            scansub = 0x00;
-            maxsub = 0;
-            parentval = null;
-
-            eds = new EDSsharp();
-
-
-            lco.SDOread((byte)numericUpDown_node.Value, scanindex, scansub, scansomplete);
-
-     
-        }
-
-        private void scansomplete(SDO obj)
-        {
-
-            //Console.WriteLine(obj.ToString());
-
-            if(obj.state== SDO.SDO_STATE.SDO_FINISHED)
+            SaveFileDialog odf = new SaveFileDialog();
+            odf.Filter = "(*.dcf)|*.dcf";
+            if (odf.ShowDialog() == DialogResult.OK)
             {
+                foreach (ListViewItem lvi in listView1.Items)
+                {
 
-              
+                    string index = lvi.SubItems[0].Text;
+                    string sub = lvi.SubItems[1].Text;
+                    string name = lvi.SubItems[2].Text;
 
-                    Console.WriteLine($"FOUND OBJECT {scanindex:x4}/{scansub:x2} length {obj.returnlen}");
-                    ODentry val = new ODentry($"Object {scanindex:x4}", scanindex, 0);
+                    sdocallbackhelper help = (sdocallbackhelper)lvi.Tag;
 
-                    switch (obj.returnlen)
+                    string defaultstring = help.od.defaultvalue;
+                    string currentstring = help.od.actualvalue;
+
+                    UInt16 key = Convert.ToUInt16(index, 16);
+                    UInt16 subi = Convert.ToUInt16(sub, 16);
+
+                    if (subi == 0)
                     {
-                        case 32:
-                            val.datatype = DataType.UNSIGNED32;
-                            break;
-                        case 24:
-                            val.datatype = DataType.UNSIGNED24;
-                            break;
-                        case 16:
-                            val.datatype = DataType.UNSIGNED16;
-                            break;
-                        case 8:
-                            val.datatype = DataType.UNSIGNED8;
-
-
-                            if (scansub==0 && obj.expitideddata != 0 )
-                            {
-                                maxsub = (byte) obj.expitideddata;
-                                //it might have sub objects
-                                parentval = val;
-                               
-                            }
-
-
-                            break;
-                        default:
-                            break;
+                        eds.ods[key].actualvalue = currentstring;
                     }
-
-                    val.defaultvalue = obj.expitideddata.ToString();
-                    
-                    
-                    if(scansub==0)
-                        eds.ods.Add(scanindex, val);
                     else
                     {
-                        parentval.objecttype = ObjectType.RECORD; //we don't know!!
-                        parentval.addsubobject(scansub, val); 
-
+                        ODentry subod = eds.ods[key].Getsubobject(subi);
+                        if (subod != null)
+                        {
+                            subod.actualvalue = currentstring;
+                        }
                     }
 
-
-
-            }
-
-            if(obj.state==SDO.SDO_STATE.SDO_ERROR)
-            {
-                if (obj.expitideddata != 0x06020000)
-                {
-                    Console.WriteLine($"ERROR READING OBJECT {scanindex:x4}/{scansub:x2} error {obj.expitideddata:x8}");
+                    // file.WriteLine(string.Format("{0}\t{1}\t{2}\t{3}\t{4}",index,sub,name,defaultstring,currentstring));
                 }
-            
-                  
+
+                eds.Savefile(odf.FileName, InfoSection.Filetype.File_DCF);
+
+                //file.Close();
             }
+        }
 
-
-
-            if (scansub < maxsub)
-            {
-                scansub++;
+        
+        private void SetCustomView(bool custom_view)
+        {
+            if (CustomView == custom_view)
+                return;
+            if (custom_view) 
+            {   
+                CustomAddSelBtn.Enabled = false;  
+                CustomDeleteSelBtn.Enabled = true;
             }
             else
             {
-                maxsub = 0;
-                scansub = 0;
-                scanindex++;
-            }
-
-            if (scanindex < 0x9999)
-                lco.SDOread((byte)numericUpDown_node.Value, scanindex, scansub, scansomplete);
-            else
-            {
-                listView1.Invoke(new MethodInvoker(delegate
+                CustomAddSelBtn.Enabled = true;  
+                CustomDeleteSelBtn.Enabled = false;            
+            }     
+            CustomView = custom_view;            
+            if (custom_view == true)
+            {      
+                listView1.BeginUpdate();
+                listView1.Items.Clear();
+                foreach(ListViewItem lvi in CustomList)
                 {
-                    updatetable();
-                }));
+                    listView1.Items.Add(lvi);
+                }
+                listView1.EndUpdate();
+            }
+            else
+            { 
+                CustomList.Clear();
+                foreach(ListViewItem lvi in listView1.Items)
+                {
+                    CustomList.Add(lvi);
+                }
+                listView1.Items.Clear();
+                UpdateTable();    
+            }
+        } 
+        
 
+        private void NormalCustomChange(bool custom_view)
+        {                       
+            if (AktivReadMode != TReadMode.READ_STOP)
+            {
+                ReadAllSelChange(TReadMode.READ_STOP);
+                System.Threading.Thread.Sleep(30);
+            }              
+            NormalViewCheckBox.CheckedChanged -= NormalViewCheckBox_CheckedChanged;
+            CustomViewCheckBox.CheckedChanged -= CustomViewCheckBox_CheckedChanged;
+            if (custom_view == false)
+            {
+                NormalViewCheckBox.Checked = true;
+                CustomViewCheckBox.Checked = false;
+            }
+            else
+            {
+                NormalViewCheckBox.Checked = false;
+                CustomViewCheckBox.Checked = true;
+            }
+            CustomViewCheckBox.CheckedChanged += CustomViewCheckBox_CheckedChanged;    
+            NormalViewCheckBox.CheckedChanged += NormalViewCheckBox_CheckedChanged;
+            SetCustomView(custom_view);
+        }     
+
+        
+        private void NormalViewCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            NormalCustomChange(false);
+        }
+
+
+        private void CustomViewCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            NormalCustomChange(true);
+        }
+
+
+        private void SetReadMode(TReadMode read_mode)
+        {
+            if (read_mode == TReadMode.READ_STOP)
+                {
+                AktivReadMode = TReadMode.READ_STOP;
+                RefreshTimer.Stop();            
+                lco.flushSDOqueue();
+                return;
+                }
+            if (!lco.isopen())
+            {
+                MessageBox.Show("CAN not open");
+                AktivReadMode = TReadMode.READ_STOP;
+                return;
             }
 
+            if (numericUpDown_node.Value == 0)
+            {
+                MessageBox.Show("You cannot read from Node 0, please select a node");
+                AktivReadMode = TReadMode.READ_STOP;
+                return;
+            }
+
+            AktivReadMode = read_mode;
+
+            listView1.Invoke(new MethodInvoker(delegate
+            {
+                if (read_mode == TReadMode.READ_ALL)
+                {
+                    foreach (ListViewItem lvi in listView1.Items)
+                        InitSdoRead(lvi);
+                }    
+                else
+                {
+                    foreach (ListViewItem lvi in listView1.SelectedItems)
+                        InitSdoRead(lvi);
+                }        
+            }));
+        }
 
 
+        private void UpdateReadWriteButtons()
+        {
+            if (ReadAutoRepeatEnable == true)
+            {
+                if (ReadAllCheckBox.Checked == true)                            
+                    ReadAllCheckBox.Text = "STOP Read all";                
+                else                
+                    ReadAllCheckBox.Text = "START Read all";                
+                if (ReadSelCheckBox.Checked == true)                
+                    ReadSelCheckBox.Text = "STOP Read selected";            
+                else                
+                    ReadSelCheckBox.Text = "START Read selected";                            
+            }
+            else
+            {
+                ReadSelCheckBox.Text = "Read selected";
+                ReadAllCheckBox.Text = "Read all";            
+            }
+            if (AktivReadMode == TReadMode.READ_STOP)
+                WriteSdoBtn.Enabled = true;
+            else    
+                WriteSdoBtn.Enabled = false; 
+        }
+            
+
+        private void ReadAllSelChange(TReadMode read_mode)
+        {            
+            SetReadMode(read_mode);
+            ReadAllCheckBox.CheckedChanged -= ReadAllCheckBox_CheckedChanged;
+            ReadSelCheckBox.CheckedChanged -= ReadSelCheckBox_CheckedChanged;            
+            if (ReadAutoRepeatEnable == true)
+            {
+                if (AktivReadMode == TReadMode.READ_SEL)
+                {
+                    ReadSelCheckBox.Checked = true;
+                    ReadAllCheckBox.Checked = false;
+                }
+                else if (AktivReadMode == TReadMode.READ_ALL)
+                {
+                    ReadSelCheckBox.Checked = false;
+                    ReadAllCheckBox.Checked = true;
+                }
+                else
+                {
+                    ReadSelCheckBox.Checked = false;
+                    ReadAllCheckBox.Checked = false;
+                }                
+            }  
+            else
+            {
+                ReadSelCheckBox.Checked = false;
+                ReadAllCheckBox.Checked = false;
+            }    
+            ReadAllCheckBox.CheckedChanged += ReadAllCheckBox_CheckedChanged;
+            ReadSelCheckBox.CheckedChanged += ReadSelCheckBox_CheckedChanged;
+            UpdateReadWriteButtons();                        
+        }
+        
+        
+        private void ReadSelCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (ReadSelCheckBox.Checked == true)
+                ReadAllSelChange(TReadMode.READ_SEL);
+            else
+                ReadAllSelChange(TReadMode.READ_STOP);
+        }
+
+
+        private void ReadAllCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (ReadAllCheckBox.Checked == true)
+                ReadAllSelChange(TReadMode.READ_ALL);
+            else
+                ReadAllSelChange(TReadMode.READ_STOP);           
+        }
+        
+
+        private void StopFlushBtn_Click(object sender, EventArgs e)
+        {
+            ReadAllSelChange(TReadMode.READ_STOP);
+        }        
+
+
+        private void AutoRepeatCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            ReadAutoRepeatEnable = AutoRepeatCheckBox.Checked;
+            ReadAllSelChange(TReadMode.READ_STOP);            
+        }
+
+        
+        private void CustomAddSelBtn_Click(object sender, EventArgs e)
+        {
+            if (CustomView == true)
+                return;
+            foreach (ListViewItem lvi in listView1.SelectedItems)
+            {
+                CustomList.Add(lvi);
+            }            
+        }
+
+
+        private void CustomDeleteSelBtn_Click(object sender, EventArgs e)
+        {
+            if (CustomView == false)
+                return;
+            foreach (ListViewItem lvi in listView1.SelectedItems)
+            {
+                listView1.Items.Remove(lvi);
+            }
+        }
+
+
+        private void checkBox_useronly_CheckedChanged(object sender, EventArgs e)
+        {
+            if (CustomView == false)
+            {
+                if (AktivReadMode != TReadMode.READ_STOP)
+                {
+                    ReadAllSelChange(TReadMode.READ_STOP);
+                    System.Threading.Thread.Sleep(30);
+                }
+            UpdateTable();
+            } 
+        }
+        
+        
+        private void comboBoxtype_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (CustomView == false)
+            {
+                if (AktivReadMode != TReadMode.READ_STOP)
+                {
+                    ReadAllSelChange(TReadMode.READ_STOP);
+                    System.Threading.Thread.Sleep(30);
+                }
+            UpdateTable();
+            }    
+        }        
+        
+        
+        private void listView1_DoubleClick(object sender, EventArgs e)
+        {
+            WriteSelectedSDOValue();
+        }
+
+        private void WriteSdoBtn_Click(object sender, EventArgs e)
+        {
+            WriteSelectedSDOValue();
         }
     }
 }

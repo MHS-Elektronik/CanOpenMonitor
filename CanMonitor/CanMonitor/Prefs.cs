@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -55,6 +55,7 @@ namespace CanMonitor
 
         string[] autoloadfixed = new string[0];
         string[] autoload = new string[0];
+        
         public void loadplugins()
         {
 

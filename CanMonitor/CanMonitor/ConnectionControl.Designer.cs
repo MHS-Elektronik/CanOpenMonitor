@@ -82,7 +82,6 @@
             this.comboBox_port.Name = "comboBox_port";
             this.comboBox_port.Size = new System.Drawing.Size(212, 21);
             this.comboBox_port.TabIndex = 0;
-            this.comboBox_port.SelectedIndexChanged += new System.EventHandler(this.comboBox_port_SelectedIndexChanged);
             // 
             // button_open
             // 
@@ -122,12 +121,12 @@
             this.comboBox_rate.Name = "comboBox_rate";
             this.comboBox_rate.Size = new System.Drawing.Size(109, 21);
             this.comboBox_rate.TabIndex = 2;
-            this.comboBox_rate.SelectedIndexChanged += new System.EventHandler(this.comboBox_rate_SelectedIndexChanged);
             // 
             // ConnectionControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoSize = true;
             this.ClientSize = new System.Drawing.Size(373, 87);
             this.Controls.Add(this.groupBox2);
             this.Name = "ConnectionControl";

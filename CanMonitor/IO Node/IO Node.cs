@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,12 +26,8 @@ namespace IO_Node
             frm.Show();
         }
 
-        public void endsdo(int node, int index, int sub, byte[] payload)
-        {
 
-        }
-
-        public string decodesdo(int node, int index, int sub, byte[] payload)
+        public string decodesdo(int index, int sub, canpacket payload)
         {
             return "";
         }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,20 +16,20 @@ namespace PluginExample
      
         public PluginExample()
         {
-            addverb("hello", "Tools", sayhello);
-            addverb("New menu", "_root_", null);
-            addverb("HELLO 2", "New menu", sayhello2);
-            addverb("---", "New menu", null);
-            addverb("More", "New menu", sayhello2);
-            addverb("More", "New menu", sayhello3);
-            addverb("More", "File", sayhello3);
+            addverb("hello", null, null, "Tools", sayhello);
+            addverb("New menu", null, null, "_root_", null);
+            addverb("HELLO 2", null, null,  "New menu", sayhello2);
+            addverb("---", null, null, "New menu", null);
+            addverb("More", null, null, "New menu", sayhello2);
+            addverb("More", null, null, "New menu", sayhello3);
+            addverb("More", null, null, "File", sayhello3);
 
         }
 
-        public void endsdo(int node, int index, int sub, byte[] payload)
+        /*public void endsdo(int node, int index, int sub, byte[] payload)<*>
         {
 
-        }
+        }*/
 
         void sayhello(object sender, System.EventArgs e)
         {
@@ -62,7 +62,7 @@ namespace PluginExample
 
         }
 
-        public string decodesdo(int node, int index, int sub, byte[] payload)
+        public string decodesdo(int index, int sub, canpacket payload)
         {
             return "";
         }

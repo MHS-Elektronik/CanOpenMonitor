@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using libCanopenSimple;
+using System.Windows.Controls;
 using WeifenLuo.WinFormsUI.Docking;
 
 namespace FlashLoader
@@ -159,7 +160,7 @@ namespace FlashLoader
                 if (p.len ==1)
                 {
 
-                    if (p.data[0] == 0x00)
+                    if (p.dataByte[0] == 0x00)
                     {
                         this.Invoke(new MethodInvoker(delegate ()
                         {

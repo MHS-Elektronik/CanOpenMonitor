@@ -47,9 +47,8 @@
             this.listView_emcy.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listView_emcy.HideSelection = false;
             this.listView_emcy.Location = new System.Drawing.Point(0, 0);
-            this.listView_emcy.Margin = new System.Windows.Forms.Padding(4);
             this.listView_emcy.Name = "listView_emcy";
-            this.listView_emcy.Size = new System.Drawing.Size(800, 450);
+            this.listView_emcy.Size = new System.Drawing.Size(600, 366);
             this.listView_emcy.TabIndex = 1;
             this.listView_emcy.UseCompatibleStateImageBehavior = false;
             this.listView_emcy.View = System.Windows.Forms.View.Details;
@@ -80,10 +79,12 @@
             // 
             // EmcyDocument
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(600, 366);
             this.Controls.Add(this.listView_emcy);
+            this.HideOnClose = true;
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "EmcyDocument";
             this.Text = "EmcyDocument";
             this.ResumeLayout(false);

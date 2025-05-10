@@ -1,0 +1,9 @@
+LIBRARY	can_mhs_win32
+
+EXPORTS
+   canReceive_driver
+   canSend_driver
+   canOpen_driver
+   canClose_driver
+   canChangeBaudRate_driver
+   canEnumerate2_driver

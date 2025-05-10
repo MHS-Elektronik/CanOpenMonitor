@@ -1,22 +1,21 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using PDOInterface;
+using libCanopenSimple;
 using WeifenLuo.WinFormsUI.Docking;
 
 namespace FlashLoader
 {
-    public class FlashLoader : InterfaceService, IInterfaceService2, IPDOParser
+    public class FlashLoader : InterfaceService, IPDOParser
     {
-        DockPanel dp;
-
         public FlashLoader()
         {
-            addverb("---", "File", null);
-            addverb("Flash node", "File", showdlg);
-            addverb("---", "File", null);
+            addverb("---", null, null, "File", null);
+            addverb("Flash node", null, null, "File", showdlg);
         }
 
         public void registerPDOS()
@@ -24,32 +23,27 @@ namespace FlashLoader
 
         }
 
-        public string decodesdo(int node, int index, int sub, byte[] payload)
+        public string decodesdo(int index, int sub, canpacket payload)
         {
             return "";
         }
 
-        public void endsdo(int node, int index, int sub, byte[] payload)
-        {
-
-        }
 
         public void showdlg(object sender, System.EventArgs e)
         {
 
-            if (_lco == null || !_lco.isopen())
+            if (_lco == null)
                 return;
+            if (!_lco.isopen())
+            {
+                MessageBox.Show("CAN not open");
+                return;
+            }                 
 
             Flasher f = new Flasher(_lco);
 
-            f.Show(dp, DockState.DockRight);
+            f.Show(MainDockPanel, DockState.DockRight);
         }
-
-        void IInterfaceService2.setdockmanager(DockPanel _dp)
-        {
-            this.dp = _dp;
-        }
-
     }
 
 }
